@@ -59,7 +59,7 @@ const ProductLinkPreview = ({ url }: { url: string }) => {
         }
 
         let cancelled = false;
-        fetch(`https://upstartpy.onrender.com/products/${productId}`)
+        fetch(`http://127.0.0.1:8000/products/${productId}`)
             .then(res => {
                 if (!res.ok) throw new Error('Not found');
                 return res.json();
@@ -180,7 +180,7 @@ export default function ChatPage() {
 
             if (vendorIdParamRef.current) {
                 try {
-                    await fetch(`https://upstartpy.onrender.com/api/chat/create/${vendorIdParamRef.current}`, {
+                    await fetch(`http://127.0.0.1:8000/api/chat/create/${vendorIdParamRef.current}`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${user.access}`,
@@ -192,7 +192,7 @@ export default function ChatPage() {
                 }
             }
 
-            const ws = new WebSocket(`wss://upstartpy.onrender.com/ws/chat?token=${user.access}`);
+            const ws = new WebSocket(`ws://127.0.0.1:8000/ws/chat?token=${user.access}`);
 
             ws.onopen = () => {
                 console.log("WS Connected");

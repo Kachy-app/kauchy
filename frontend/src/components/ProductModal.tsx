@@ -1,6 +1,7 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 interface Product {
     _id?: string;
@@ -19,7 +20,18 @@ interface Product {
     rating?: number;
     review_count?: number;
     likes?: number;
+    likes_count?: number;
+    has_liked?: boolean;
     view_count?: number;
+}
+
+interface Review {
+    id: number;
+    user: number;
+    user_name: string;
+    rating: number;
+    review: string;
+    created_at: string;
 }
 
 interface ProductModalProps {
@@ -28,11 +40,162 @@ interface ProductModalProps {
     addToCart: (product: Product, quantity: number) => void;
 }
 
+function StarRating({ rating, onRate, interactive = false, size = 'text-base' }: { rating: number; onRate?: (r: number) => void; interactive?: boolean; size?: string }) {
+    const [hovered, setHovered] = useState(0);
+    return (
+        <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map(star => (
+                <span
+                    key={star}
+                    className={`${size} transition-all duration-150 ${interactive ? 'cursor-pointer hover:scale-125' : ''} ${
+                        star <= (hovered || rating) ? 'text-amber-400' : 'text-gray-300'
+                    }`}
+                    onClick={() => interactive && onRate?.(star)}
+                    onMouseEnter={() => interactive && setHovered(star)}
+                    onMouseLeave={() => interactive && setHovered(0)}
+                >
+                    ★
+                </span>
+            ))}
+        </div>
+    );
+}
+
+function timeAgo(dateStr: string) {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+}
+
 export default function ProductModal({ product, onClose, addToCart }: ProductModalProps) {
     const [quantity, setQuantity] = useState(1);
     const { showToast } = useToast();
+    const { user } = useAuth();
+
+    // Like state
+    const [liked, setLiked] = useState(false);
+    const [likesCount, setLikesCount] = useState(0);
+    const [likeLoading, setLikeLoading] = useState(false);
+
+    // Review state
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [loadingReviews, setLoadingReviews] = useState(false);
+    const [totalReviews, setTotalReviews] = useState(0);
+    const [reviewText, setReviewText] = useState('');
+    const [reviewRating, setReviewRating] = useState(0);
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [activeImage, setActiveImage] = useState(0);
+
+    const reviewsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (product) {
+            setLiked(product.has_liked || false);
+            setLikesCount(product.likes_count ?? product.likes ?? 0);
+            setActiveImage(0);
+            fetchReviews();
+        }
+    }, [product]);
 
     if (!product) return null;
+
+    const productId = product._id || product.id;
+
+    async function fetchReviews() {
+        if (!productId) return;
+        setLoadingReviews(true);
+        try {
+            const res = await fetch(`http://127.0.0.1:8000/products/${productId}/reviews/`);
+            if (res.ok) {
+                const data = await res.json();
+                setReviews(data.reviews || []);
+                setTotalReviews(data.total_reviews || 0);
+            }
+        } catch (e) {
+            console.error('Error fetching reviews', e);
+        } finally {
+            setLoadingReviews(false);
+        }
+    }
+
+    async function handleLikeToggle() {
+        if (!user) {
+            showToast('Please login to like products', 'error');
+            return;
+        }
+        if (likeLoading || !productId) return;
+        setLikeLoading(true);
+
+        try {
+            const res = await fetch(`http://127.0.0.1:8000/products/${productId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.access}`,
+                },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setLiked(data.has_liked);
+                setLikesCount(data.likes_count);
+            } else {
+                showToast('Failed to update like', 'error');
+            }
+        } catch (e) {
+            showToast('Network error', 'error');
+        } finally {
+            setLikeLoading(false);
+        }
+    }
+
+    async function handleSubmitReview(e: React.FormEvent) {
+        e.preventDefault();
+        if (!user) {
+            showToast('Please login to write a review', 'error');
+            return;
+        }
+        if (reviewRating === 0) {
+            showToast('Please select a star rating', 'error');
+            return;
+        }
+        if (reviewText.trim().length < 3) {
+            showToast('Review must be at least 3 characters', 'error');
+            return;
+        }
+        if (submittingReview || !productId) return;
+        setSubmittingReview(true);
+
+        try {
+            const res = await fetch(`http://127.0.0.1:8000/products/${productId}/reviews/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.access}`,
+                },
+                body: JSON.stringify({ rating: reviewRating, review: reviewText }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setReviews(prev => [data, ...prev]);
+                setTotalReviews(prev => prev + 1);
+                setReviewText('');
+                setReviewRating(0);
+                showToast('Review submitted!', 'success');
+            } else {
+                const err = await res.json();
+                showToast(err.error || err.errors?.review?.[0] || 'Failed to submit review', 'error');
+            }
+        } catch (e) {
+            showToast('Network error', 'error');
+        } finally {
+            setSubmittingReview(false);
+        }
+    }
 
     const handleAddToCart = () => {
         addToCart(product, quantity);
@@ -40,7 +203,8 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
         setQuantity(1); // Reset
     };
 
-    const mainImage = (product.image_url && product.image_url.length > 0) ? product.image_url[0] : '/placeholder.svg';
+    const images = product.image_url && product.image_url.length > 0 ? product.image_url : ['/placeholder.svg'];
+    const mainImage = images[activeImage] || images[0];
 
     const handleVendorClick = () => {
         window.location.href = `/vendor-profile?vendorId=${product.vendor_id}`;
@@ -75,6 +239,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
     };
 
     const isVendorPage = typeof window !== 'undefined' && window.location.pathname.includes('vendor-profile');
+    const isOwnProduct = user && product.vendor_id && String(user.id) === String(product.vendor_id);
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 overflow-y-auto p-5" onClick={onClose}>
@@ -88,9 +253,14 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                             <img src={mainImage} alt={product.product_name} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex flex-wrap gap-3 p-1">
-                            {/* Thumbnails logic could be added here if we had multiple images */}
-                            {(product.image_url || []).map((img, i) => (
-                                <img key={i} src={img} className={`w-[60px] h-[60px] rounded-md cursor-pointer object-cover border-2 border-transparent transition-all duration-200 hover:opacity-80 ${i === 0 ? '!border-amber-400' : ''}`} alt={`Thumbnail ${i}`} />
+                            {images.map((img, i) => (
+                                <img
+                                    key={i}
+                                    src={img}
+                                    className={`w-[60px] h-[60px] rounded-md cursor-pointer object-cover border-2 transition-all duration-200 hover:opacity-80 ${i === activeImage ? 'border-amber-400' : 'border-transparent'}`}
+                                    alt={`Thumbnail ${i}`}
+                                    onClick={() => setActiveImage(i)}
+                                />
                             ))}
                         </div>
                     </div>
@@ -104,17 +274,28 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <span className="text-amber-400 text-base">{'★'.repeat(Math.round(product.rating || 5))}</span>
-                            <span className="text-sm text-gray-600">({product.review_count || 0} reviews)</span>
+                            <StarRating rating={Math.round(product.rating || 0)} />
+                            <span className="text-sm text-gray-600">({totalReviews} reviews)</span>
                         </div>
 
                         {/* Engagement */}
-                        <div className="flex flex-wrap gap-4 mt-1 bg-gray-100 p-4">
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 transition-all hover:bg-white hover:border-red-400 hover:text-red-500 cursor-pointer" title="Like this product">
-                                ♡ <span id="likesCount">{product.likes || 0}</span> Likes
+                        <div className="flex flex-wrap gap-4 mt-1 bg-gray-100 p-4 rounded-lg">
+                            <button
+                                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                                    liked
+                                        ? 'bg-red-50 border-red-300 text-red-500'
+                                        : 'border-gray-200 text-gray-600 hover:bg-white hover:border-red-400 hover:text-red-500'
+                                } ${likeLoading ? 'opacity-50 pointer-events-none' : ''}`}
+                                title={liked ? "Unlike this product" : "Like this product"}
+                                onClick={handleLikeToggle}
+                            >
+                                <span className={`text-lg transition-transform duration-300 ${liked ? 'scale-110' : ''}`}>
+                                    {liked ? '♥' : '♡'}
+                                </span>
+                                <span>{likesCount}</span> Likes
                             </button>
                             <span className="flex items-center gap-1.5 text-sm text-gray-600 px-3 py-1.5 rounded-lg">
-                                👁 <span id="viewCount">{product.view_count || 0}</span> Views
+                                👁 <span>{product.view_count || 0}</span> Views
                             </span>
                         </div>
 
@@ -142,11 +323,70 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                         </div>
 
                         {/* Reviews Section */}
-                        <div className="mt-6 pt-6 border-gray-200 bg-gray-100 p-4 rounded-lg">
-                            <h3 className="text-lg font-semibold mb-4 text-gray-900">Customer Reviews</h3>
-                            <div className="flex flex-col gap-4">
-                                <p className="text-center py-4 text-gray-500 text-sm italic">No reviews yet</p>
+                        <div className="mt-6 pt-6 border-gray-200 bg-gray-100 p-4 rounded-lg" ref={reviewsRef}>
+                            <h3 className="text-lg font-semibold mb-4 text-gray-900">Customer Reviews ({totalReviews})</h3>
+                            <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-1">
+                                {loadingReviews ? (
+                                    <div className="flex flex-col gap-3 animate-pulse">
+                                        {[1, 2].map(i => (
+                                            <div key={i} className="flex gap-3 p-3 bg-white rounded-lg">
+                                                <div className="w-9 h-9 rounded-full bg-gray-200 shrink-0"></div>
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                                                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : reviews.length === 0 ? (
+                                    <p className="text-center py-4 text-gray-500 text-sm italic">No reviews yet. Be the first to review!</p>
+                                ) : (
+                                    reviews.map(rev => (
+                                        <div key={rev.id} className="flex gap-3 p-3 bg-white rounded-lg shadow-sm">
+                                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                                {(rev.user_name || 'U').charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-sm font-semibold text-gray-900">{rev.user_name || 'User'}</span>
+                                                    <span className="text-xs text-gray-400">{timeAgo(rev.created_at)}</span>
+                                                </div>
+                                                <StarRating rating={rev.rating} size="text-xs" />
+                                                <p className="text-sm text-gray-600 mt-1 leading-relaxed">{rev.review}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
+
+                            {/* Review Form */}
+                            {user && !isOwnProduct && (
+                                <form onSubmit={handleSubmitReview} className="mt-4 pt-4 border-t border-gray-200">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="text-sm font-medium text-gray-700">Your rating:</span>
+                                        <StarRating rating={reviewRating} onRate={setReviewRating} interactive size="text-xl" />
+                                    </div>
+                                    <textarea
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors bg-white resize-none"
+                                        rows={3}
+                                        placeholder="Write your review..."
+                                        value={reviewText}
+                                        onChange={(e) => setReviewText(e.target.value)}
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={submittingReview || reviewRating === 0 || reviewText.trim().length < 3}
+                                        className="mt-2 px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold transition-all hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 border-none cursor-pointer"
+                                    >
+                                        {submittingReview ? 'Submitting...' : 'Submit Review'}
+                                    </button>
+                                </form>
+                            )}
+                            {!user && (
+                                <p className="mt-4 pt-4 border-t border-gray-200 text-center text-sm text-gray-500">
+                                    <a href="/login" className="text-blue-600 font-medium hover:underline">Log in</a> to write a review
+                                </p>
+                            )}
                         </div>
 
                         {/* Vendor Section */}

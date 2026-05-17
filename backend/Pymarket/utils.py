@@ -33,7 +33,7 @@ def link_preview(request):
         <meta property="og:title" content="{vendor_info.username} Profile - Upstart">
         <meta property="og:description" content="{vendor_info.bio}">
         <meta property="og:image" content="{image_url}">
-        <meta property="og:url" content="https://upstartpy.onrender.com/vendor-profile?vendorId={vendor_id}">
+        <meta property="og:url" content="http://127.0.0.1:8000/vendor-profile?vendorId={vendor_id}">
         <meta property="og:type" content="profile">
         
         <!-- Twitter Card tags -->

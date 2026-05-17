@@ -63,7 +63,7 @@ async function loadAnalytics() {
   if (!currentUser) return
 
   try{
-    const response = await fetch('https://upstartpy.onrender.com/analytics/overview/',
+    const response = await fetch('http://127.0.0.1:8000/analytics/overview/',
       {
         method: "GET",
         headers: {
@@ -167,7 +167,7 @@ function drawSalesChart() {
 async function loadTopProducts() {
   const currentUser = JSON.parse(localStorage.getItem("userData"))
   try{
-    const response = await fetch('https://upstartpy.onrender.com/analytics/top-products-vendor/',
+    const response = await fetch('http://127.0.0.1:8000/analytics/top-products-vendor/',
       {
         method: "GET",
         headers: {

@@ -44,5 +44,6 @@ urlpatterns = [
     path('chat/', include('chatapp.urls')),
     path('vendor-profile', link_preview),
     path('orders/', include('orders.urls')),
-    path('waitlist/', include('waitlist.urls'))
+    path('waitlist/', include('waitlist.urls')),
+    path('dispute/', include('dispute.urls'))
 ]

@@ -27,7 +27,7 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
         try {
-            const res = await fetch('https://upstartpy.onrender.com/auth/users/me/', {
+            const res = await fetch('http://127.0.0.1:8000/auth/users/me/', {
                 headers: { Authorization: `Bearer ${user.access}` }
             });
             if (res.ok) {
@@ -73,7 +73,7 @@ export default function ProfilePage() {
     const handleSave = async () => {
         setLoading(true);
         try {
-            const res = await fetch('https://upstartpy.onrender.com/auth/users/me/', {
+            const res = await fetch('http://127.0.0.1:8000/auth/users/me/', {
                 method: 'PATCH',
                 headers: {
                     "Content-Type": "application/json",
@@ -121,7 +121,7 @@ export default function ProfilePage() {
         setLoading(true);
 
         try {
-            const res = await fetch('https://upstartpy.onrender.com/auth/users/me/', {
+            const res = await fetch('http://127.0.0.1:8000/auth/users/me/', {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${user.access}` },
                 body: formData
@@ -146,11 +146,11 @@ export default function ProfilePage() {
     if (loading && !profile) return <LoadingModal />;
 
     return (
-        <main className="container mx-auto px-5 py-10 flex flex-col gap-6">
+        <main className="container mx-auto px-2.5 py-5 sm:px-5 sm:py-10 flex flex-col gap-6">
             {loading && <LoadingModal />}
 
             {/* Profile Header Card */}
-            <div className="bg-white rounded-xl p-6 shadow-legacy-card flex flex-col items-center text-center gap-5">
+            <div className="bg-white rounded-xl p-5 sm:p-6 shadow-legacy-card flex flex-col items-center text-center gap-5">
                 <div className="flex flex-col items-center gap-3">
                     <div
                         className="w-[120px] h-[120px] rounded-full overflow-hidden bg-[#f4f6fa] cursor-pointer transition-transform duration-300 hover:scale-105"
@@ -178,7 +178,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Account Information Card */}
-            <div className="bg-white rounded-xl p-6 shadow-legacy-card">
+            <div className="bg-white rounded-xl p-5 sm:p-6 shadow-legacy-card">
                 <h2 className="text-lg font-semibold text-[#1d1d1d] mb-5">Account Information</h2>
 
                 <div className="mb-4">

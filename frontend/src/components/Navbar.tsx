@@ -7,10 +7,11 @@ import { Search, ShoppingCart, User, Menu, X, Bell, LogOut, LayoutDashboard, Pac
 
 type Notification = {
     id: number;
+    title: string;
     message: string;
-    date: string;
-    read: boolean;
-    userId: number;
+    notification_type: string;
+    is_read: boolean;
+    created_at: string;
 };
 
 export default function Navbar() {
@@ -32,6 +33,7 @@ export default function Navbar() {
     const profileRef = useRef<HTMLDivElement>(null);
     const notificationRef = useRef<HTMLDivElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
+    const wsRef = useRef<WebSocket | null>(null);
 
     // Fetch dynamic data
     useEffect(() => {
@@ -39,7 +41,7 @@ export default function Navbar() {
 
         const fetchWallet = async () => {
             try {
-                const response = await fetch('https://upstartpy.onrender.com/wallet/getbalance/', {
+                const response = await fetch('http://127.0.0.1:8000/wallet/getbalance/', {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -59,7 +61,7 @@ export default function Navbar() {
 
         const fetchCart = async () => {
             try {
-                const response = await fetch('https://upstartpy.onrender.com/cart/cart-items/', {
+                const response = await fetch('http://127.0.0.1:8000/cart/cart-items/', {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -75,67 +77,63 @@ export default function Navbar() {
             }
         };
 
-        const loadNotifications = () => {
+        fetchWallet();
+        fetchCart();
+    }, [user]);
+
+    // WebSocket connection for real-time notifications
+    useEffect(() => {
+        if (!user || !user.access) return;
+
+        const wsHost = window.location.hostname === 'localhost' ? 'ws://127.0.0.1:8000' : `wss://${window.location.hostname}`;
+        const ws = new WebSocket(`${wsHost}/ws/notifications/?token=${user.access}`);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+            console.log('Notification WebSocket connected');
+            // Request all notifications on connect
+            ws.send(JSON.stringify({ action: 'get_notification' }));
+        };
+
+        ws.onmessage = (event) => {
             try {
-                const stored = localStorage.getItem("notifications");
-                const allNotifs: Notification[] = stored ? JSON.parse(stored) : [];
-                // Filter for current user. Assuming user.user.id exists based on legacy code accessing user.id from filtered list
-                // Legacy: userNotifications = notifications.filter((n) => n.userId === currentUser.id)
-                // user object structure: user.user.id or user.id? Legacy says currentUser.id but currentUser is from parsing userData.
-                // In AuthContext user state is the parsed userData. So likely user.user.id or user.id
-                // Let's safe check both or check legacy again. Legacy: currentUser.id
-                // Wait, legacy: const currentUser = JSON.parse(localStorage.getItem("userData"));
-                // then: currentUser.id
-                // But in vendor check: currentUser.user.role.
-                // Let's assume user.id for top level or user.user.id.
-                // Safest to just filter if we have IDs.
-                // Let's try to match legacy user.id usage. In legacy updateNotifications:
-                // const userNotifications = notifications.filter((n) => n.userId === currentUser.id)
+                const data = JSON.parse(event.data);
 
-                // Correction: In updateVendorMenu, it uses currentUser.user.role.
-                // If AuthContext returns the full object (which includes access token), it's the `userData` object.
-                // Let's check if `user.id` or `user.user.id` is the ID.
-                // Usually these auth responses have { access: "...", user: { id: ..., role: ... } }
-                // So the ID is likely in user.user.id. However, legacy uses `currentUser.id` for notifications but `currentUser.user.role` for role.
-                // That might be a bug in legacy or valid if the ID is also on top level.
-                // Let's stick safe and use user?.user?.id || user?.id.
-
-                const userId = user?.user?.id || user?.id;
-                if (!userId) return;
-
-                const userNotifs = allNotifs.filter(n => n.userId === userId);
-                setNotifications(userNotifs);
-                setUnreadCount(userNotifs.filter(n => !n.read).length);
+                if (data.type === 'unread_count') {
+                    setUnreadCount(data.count);
+                } else if (data.type === 'notifications') {
+                    setNotifications(data.notifications || []);
+                } else if (data.type === 'new_notification') {
+                    // Prepend new notification to list
+                    setNotifications(prev => [data.notification, ...prev].slice(0, 20));
+                }
             } catch (e) {
-                console.error("Error loading notifications", e);
+                console.error('Error parsing WebSocket message:', e);
             }
         };
 
-        fetchWallet();
-        fetchCart();
-        loadNotifications();
+        ws.onclose = () => {
+            console.log('Notification WebSocket disconnected');
+        };
 
-        // Optional: Poll or set up interval updates? Legacy just calls init.
+        ws.onerror = (err) => {
+            console.error('Notification WebSocket error:', err);
+        };
+
+        return () => {
+            ws.close();
+            wsRef.current = null;
+        };
     }, [user]);
 
     const handleNotificationClick = (notifId: number) => {
-        try {
-            const stored = localStorage.getItem("notifications");
-            let allNotifs: Notification[] = stored ? JSON.parse(stored) : [];
-            const targetIndex = allNotifs.findIndex(n => n.id === notifId);
-            if (targetIndex !== -1) {
-                allNotifs[targetIndex].read = true;
-                localStorage.setItem("notifications", JSON.stringify(allNotifs));
-
-                // Update local state
-                const userId = user?.user?.id || user?.id;
-                const userNotifs = allNotifs.filter(n => n.userId === userId);
-                setNotifications(userNotifs);
-                setUnreadCount(userNotifs.filter(n => !n.read).length);
-            }
-        } catch (e) {
-            console.error("Error updating notification", e);
+        // Mark as read via WebSocket
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ action: 'mark_read', notification_id: notifId }));
         }
+        // Optimistically update local state
+        setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
     };
 
     useEffect(() => {
@@ -253,9 +251,10 @@ export default function Navbar() {
                                                 <p className="p-6 text-center text-gray-500 text-sm">No notifications</p>
                                             ) : (
                                                 notifications.map((notif) => (
-                                                    <div key={notif.id} className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${notif.read ? 'opacity-60' : 'bg-blue-50/30'}`} onClick={() => handleNotificationClick(notif.id)}>
+                                                    <div key={notif.id} className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${notif.is_read ? 'opacity-60' : 'bg-blue-50/30'}`} onClick={() => handleNotificationClick(notif.id)}>
+                                                        <p className="text-xs font-semibold text-[#1c6ef2] mb-0.5">{notif.title}</p>
                                                         <p className="text-sm text-gray-800 mb-1 leading-snug">{notif.message}</p>
-                                                        <span className="text-xs text-gray-500">{new Date(notif.date).toLocaleDateString()}</span>
+                                                        <span className="text-xs text-gray-500">{new Date(notif.created_at).toLocaleDateString()}</span>
                                                     </div>
                                                 ))
                                             )}

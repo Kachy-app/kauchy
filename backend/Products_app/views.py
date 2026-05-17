@@ -3,9 +3,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Product, ProductReviews, ProductView
-from .serializers import ProductSerializer
+from .models import Product, ProductReviews, ProductView, ProductLike
+from .serializers import ProductSerializer, ProductReviewSerializer
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from .supabase_config import supabase
 import os
 import time
@@ -69,9 +70,9 @@ class CreateProductView(APIView):
     )  
     def post(self, request):
         user = request.user
-        print("User is:", user.id)
+        # print("User is:", user.id)
         data = request.data
-        print(data)
+        # print(data)
 
         # collect uploaded files (if any)
         images = request.FILES.getlist('image_url') if hasattr(request.FILES, 'getlist') else []
@@ -166,7 +167,7 @@ class CreateProductView(APIView):
             except Exception:
                 clean_data['rating'] = 0
 
-        print("Clean data is:", clean_data)
+        # print("Clean data is:", clean_data)
 
         serializer = ProductSerializer(data=clean_data)
         if serializer.is_valid():
@@ -213,7 +214,7 @@ class ProductDetailView(APIView):
         auth_user = request.user
         data = request.data
         data["vendor_id"] = auth_user.id
-        print(request)
+        # print(request)
         try:
             products = Product.objects.get(pk=pk, vendor_id=auth_user)
         except Product.DoesNotExist:
@@ -240,9 +241,9 @@ class AllProductsView(APIView):
 
     def get(self,request):
         user = request.user
-        print(user)
+        # print(user)
         if user.is_authenticated:
-            print("hi")
+            # print("hi")
             products = personalized_feed(user)
         else:
             products= Product.objects.all()
@@ -256,3 +257,96 @@ class GetVendorProducts(APIView):
         data = Product.objects.filter(vendor_id=pk).prefetch_related('product')
         serializer = ProductSerializer(data, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProductLikeToggleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Toggle Product Like",
+        description="Like or unlike a product",
+        responses={200: dict},
+    )
+    def post(self, request, pk):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        like, created = ProductLike.objects.get_or_create(product=product, user=request.user)
+
+        if not created:
+            # Already liked, so unlike it
+            like.delete()
+            return Response({"message": "Product unliked", "likes_count": product.likes_count, "has_liked": False}, status=status.HTTP_200_OK)
+
+        # Since it was created, save takes care of incrementing the product.likes_count
+        product.refresh_from_db()
+        return Response({"message": "Product liked", "likes_count": product.likes_count, "has_liked": True}, status=status.HTTP_200_OK)
+
+
+class ProductReviewListCreateView(APIView):
+    """List and create reviews for a product."""
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated()]
+        return []
+
+    @extend_schema(
+        summary="List Product Reviews",
+        description="Retrieve all reviews for a product with pagination.",
+        parameters=[
+            OpenApiParameter(name='page', location=OpenApiParameter.QUERY, description='Page number', type=OpenApiTypes.INT)
+        ],
+        responses={200: dict},
+    )
+    def get(self, request, pk):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        reviews = ProductReviews.objects.filter(product=product).order_by('-created_at')
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 10
+        paginated_reviews = paginator.paginate_queryset(reviews, request)
+
+        serializer = ProductReviewSerializer(paginated_reviews, many=True)
+
+        return Response({
+            "reviews": serializer.data,
+            "total_reviews": reviews.count(),
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link()
+        }, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Create Product Review",
+        description="Submit a review for a product. Requires authentication.",
+        request=ProductReviewSerializer,
+        responses={201: ProductReviewSerializer},
+    )
+    def post(self, request, pk):
+        try:
+            product = Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Cannot review your own product
+        if request.user == product.vendor_id:
+            return Response({"error": "You cannot review your own product"}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = ProductReviewSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user, product=product)
+
+            # Update the product's average rating
+            all_reviews = ProductReviews.objects.filter(product=product)
+            avg_rating = sum(r.rating for r in all_reviews) / all_reviews.count()
+            product.rating = round(avg_rating)
+            product.save(update_fields=['rating'])
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

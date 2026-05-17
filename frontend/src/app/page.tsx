@@ -42,7 +42,7 @@ export default function Home(): JSX.Element {
         headers["Authorization"] = `Bearer ${user.access}`;
       }
 
-      const res = await fetch(`https://upstartpy.onrender.com/products/`, { headers });
+      const res = await fetch(`http://127.0.0.1:8000/products/`, { headers });
       if (res.ok) {
         const data = await res.json();
         setProducts(data);
@@ -73,7 +73,7 @@ export default function Home(): JSX.Element {
       const headers: any = { "Content-Type": "application/json" };
       if (user) headers["Authorization"] = `Bearer ${user.access}`;
 
-      const res = await fetch(`https://upstartpy.onrender.com/products/${product.id}`, { headers });
+      const res = await fetch(`http://127.0.0.1:8000/products/${product.id}`, { headers });
       if (res.ok) {
         const details = await res.json();
         setSelectedProduct(details);
@@ -102,7 +102,7 @@ export default function Home(): JSX.Element {
 
   return (
     <>
-      <div className="max-w-[1600px] mx-auto px-5 py-10 min-h-[calc(100vh-140px)]">
+      <div className="max-w-[1600px] mx-auto px-2.5 py-5 sm:px-5 sm:py-10 min-h-[calc(100vh-140px)]">
         <HeroBanner />
 
         <CategoryNav
@@ -120,7 +120,7 @@ export default function Home(): JSX.Element {
               </h2>
               <button className="text-blue-600 font-medium hover:underline text-sm">View All</button>
             </div>
-            <div className="flex gap-6 overflow-x-auto pb-4 -mx-5 px-5 md:mx-0 md:px-0 scrollbar-hide">
+            <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 -mx-2.5 px-2.5 sm:-mx-5 sm:px-5 md:mx-0 md:px-0 scrollbar-hide">
               {products.slice(0, 6).map(product => (
                 <div key={`flash-${product.id}`} className="min-w-[220px] md:min-w-[250px] flex-shrink-0">
                   <ProductCard product={product} onClick={handleProductClick} />
@@ -136,7 +136,7 @@ export default function Home(): JSX.Element {
               {currentCategory === 'all' ? 'Just For You' : categories.find(c => c.id === currentCategory)?.label || 'Products'}
             </h2>
           </div>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-6">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 sm:gap-6">
             {loading ? (
               Array(8).fill(0).map((_, i) => (
                 <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm animate-pulse">

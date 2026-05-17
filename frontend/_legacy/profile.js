@@ -148,7 +148,7 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   console.log('Saving profile with:', JSON.stringify({bio, institute}))
   
   try{
-    const response = await fetch('https://upstartpy.onrender.com/auth/users/me/', 
+    const response = await fetch('http://127.0.0.1:8000/auth/users/me/', 
       {
         method: "PATCH",
         headers: {
@@ -241,7 +241,7 @@ document.getElementById("photoInput").addEventListener("change", async (e) => {
   formData.append('profile_picture', file);
 
   try{
-    const response = await fetch('https://upstartpy.onrender.com/auth/users/me/', 
+    const response = await fetch('http://127.0.0.1:8000/auth/users/me/', 
       {
         method: "PATCH",
         headers: {

@@ -18,9 +18,9 @@ export default function LeaderboardPage() {
         async function fetchData() {
             try {
                 const [vRes, cRes, pRes] = await Promise.all([
-                    fetch('https://upstartpy.onrender.com/customers/top-vendors/').then(r => r.ok ? r.json() : []),
-                    fetch('https://upstartpy.onrender.com/customers/top-customers/').then(r => r.ok ? r.json() : []),
-                    fetch('https://upstartpy.onrender.com/analytics/top-products/').then(r => r.ok ? r.json() : [])
+                    fetch('http://127.0.0.1:8000/customers/top-vendors/').then(r => r.ok ? r.json() : []),
+                    fetch('http://127.0.0.1:8000/customers/top-customers/').then(r => r.ok ? r.json() : []),
+                    fetch('http://127.0.0.1:8000/analytics/top-products/').then(r => r.ok ? r.json() : [])
                 ]);
                 setVendors(Array.isArray(vRes) ? vRes : []);
                 setCustomers(Array.isArray(cRes) ? cRes : []);
@@ -51,8 +51,8 @@ export default function LeaderboardPage() {
 
     return (
         <div className="min-h-screen font-sans bg-gray-50 text-gray-900">
-            <main className="w-full max-w-[1400px] mx-auto py-10 px-5">
-                <div className="flex flex-col gap-6">
+            <main className="w-full max-w-[1400px] mx-auto py-5 px-2.5 sm:py-10 sm:px-5">
+                <div className="flex flex-col gap-4 sm:gap-6">
                     <h1 className="text-3xl font-bold">Leaderboard</h1>
 
                     <div className="flex gap-3 overflow-x-auto border-b border-gray-200">
@@ -92,7 +92,7 @@ export default function LeaderboardPage() {
                                                 <div className="text-sm font-semibold text-gray-900 mb-1">{v.username || v.firstName || 'Unknown User'}</div>
                                                 <div className="text-xs text-gray-600">{v.institute || 'Institute N/A'}</div>
                                             </div>
-                                            <div className="flex gap-6 items-center justify-center md:justify-start w-full md:w-auto">
+                                            <div className="flex gap-4 sm:gap-6 items-center justify-center md:justify-start w-full md:w-auto">
                                                 <div className="text-right">
                                                     <span className="block text-base font-bold text-blue-600">{v.total_sales || 0}</span>
                                                     <span className="block text-[11px] text-gray-600 mt-0.5">Sales</span>
@@ -120,7 +120,7 @@ export default function LeaderboardPage() {
                                                 <div className="text-sm font-semibold text-gray-900 mb-1">{c.username || c.email}</div>
                                                 <div className="text-xs text-gray-600">Customer</div>
                                             </div>
-                                            <div className="flex gap-6 items-center justify-center md:justify-start w-full md:w-auto">
+                                            <div className="flex gap-4 sm:gap-6 items-center justify-center md:justify-start w-full md:w-auto">
                                                 <div className="text-right">
                                                     <span className="block text-base font-bold text-blue-600">{c.total_orders || 0}</span>
                                                     <span className="block text-[11px] text-gray-600 mt-0.5">Orders</span>

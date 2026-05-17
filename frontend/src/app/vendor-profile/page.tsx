@@ -31,21 +31,21 @@ function VendorProfileContent() {
     const loadVendorData = async () => {
         try {
             // Fetch Vendor Info
-            const resVendor = await fetch(`https://upstartpy.onrender.com/auth/user/${vendorId}`);
+            const resVendor = await fetch(`http://127.0.0.1:8000/auth/user/${vendorId}`);
             if (resVendor.ok) {
                 const data = await resVendor.json();
                 setVendor(data);
             }
 
             // Fetch Vendor Products
-            const resProducts = await fetch(`https://upstartpy.onrender.com/products/vendor-products/${vendorId}`);
+            const resProducts = await fetch(`http://127.0.0.1:8000/products/vendor-products/${vendorId}`);
             if (resProducts.ok) {
                 const data = await resProducts.json();
                 setProducts(Array.isArray(data) ? data : []);
             }
 
             // Fetch Vendor Content
-            const resContent = await fetch(`https://upstartpy.onrender.com/customers/vendorcontents/${vendorId}`);
+            const resContent = await fetch(`http://127.0.0.1:8000/customers/vendorcontents/${vendorId}`);
             if (resContent.ok) {
                 const data = await resContent.json();
                 setContent(Array.isArray(data) ? data : []);
@@ -64,7 +64,7 @@ function VendorProfileContent() {
             return;
         }
         try {
-            const res = await fetch(`https://upstartpy.onrender.com/chat/create/${vendorId}`, {
+            const res = await fetch(`http://127.0.0.1:8000/chat/create/${vendorId}`, {
                 method: 'POST',
                 headers: {
                     "Authorization": `Bearer ${user.access}`,
@@ -99,10 +99,10 @@ function VendorProfileContent() {
 
     return (
         <div className="min-h-screen font-sans bg-gray-50 text-gray-900">
-            <main className="w-full max-w-[1400px] mx-auto py-10 px-5">
-                <div className="flex flex-col gap-10">
+            <main className="w-full max-w-[1400px] mx-auto py-5 px-2.5 sm:py-10 sm:px-5">
+                <div className="flex flex-col gap-6 sm:gap-10">
                     {/* Profile Card */}
-                    <div className="bg-white rounded-xl p-8 shadow-legacy-card">
+                    <div className="bg-white rounded-xl p-5 sm:p-8 shadow-legacy-card">
                         <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-6 items-center mb-8 pb-8 border-b border-gray-200 text-center md:text-left">
                             <img
                                 src={vendor.info?.profile_url || '/placeholder.svg?height=120&width=120'}
@@ -218,8 +218,8 @@ function VendorProfileContent() {
                                     <div className="p-0">
                                         <div className="text-sm font-semibold text-gray-900 text-center p-2.5">{c.caption || 'Untitled'}</div>
                                         <div className="flex justify-around py-3 px-4 border-t border-gray-100">
-                                            <span className="flex items-center gap-1.5 text-xs text-gray-600">👁 {c.views || 0}</span>
-                                            <span className="flex items-center gap-1.5 text-xs text-gray-600">♡ {c.likes || 0}</span>
+                                            <span className="flex items-center gap-1.5 text-xs text-gray-600">💬 {c.reviews_count || 0}</span>
+                                            <span className="flex items-center gap-1.5 text-xs text-gray-600">{c.is_liked_by_user ? '♥' : '♡'} {c.likes_count || 0}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -247,8 +247,11 @@ function VendorProfileContent() {
                 <VideoModal
                     video={selectedVideo.video}
                     caption={selectedVideo.caption}
-                    likes={selectedVideo.likes}
-                    views={selectedVideo.views}
+                    contentId={selectedVideo.id}
+                    likes={selectedVideo.likes_count || 0}
+                    views={selectedVideo.views || 0}
+                    isLikedByUser={selectedVideo.is_liked_by_user || false}
+                    reviewsCount={selectedVideo.reviews_count || 0}
                     onClose={() => setSelectedVideo(null)}
                 />
             )}

@@ -18,7 +18,7 @@ interface Toast {
 }
 
 export default function WalletPage() {
-    const { user, logout } = useAuth();
+    const { user, logout, loading } = useAuth();
     const router = useRouter();
 
     // State
@@ -57,19 +57,32 @@ export default function WalletPage() {
     }, []);
 
     useEffect(() => {
+        if (loading) return;
         if (!user) {
             router.push('/login');
             return;
         }
         loadWalletData();
-    }, [user]);
+    }, [user, loading]);
 
     const loadWalletData = async () => {
         if (!user) return;
 
         // Check pending payment on return from Paystack
-        const pendingRef = sessionStorage.getItem("pendingPaymentReference");
-        const pendingAmt = sessionStorage.getItem("pendingPaymentAmount");
+        let pendingRef = sessionStorage.getItem("pendingPaymentReference");
+        let pendingAmt = sessionStorage.getItem("pendingPaymentAmount");
+
+        // Fallback: check URL params from Paystack redirect (?trxref=xxx&reference=xxx)
+        if (!pendingRef) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlRef = urlParams.get('trxref') || urlParams.get('reference');
+            if (urlRef) {
+                pendingRef = urlRef;
+                pendingAmt = pendingAmt || '0'; // Amount will be shown from backend
+                // Clean URL params so we don't re-verify on refresh
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        }
 
         if (pendingRef && pendingAmt) {
             sessionStorage.removeItem("pendingPaymentReference");
@@ -78,7 +91,7 @@ export default function WalletPage() {
         }
 
         try {
-            const response = await fetch('https://upstartpy.onrender.com/wallet/getbalance/', {
+            const response = await fetch('http://127.0.0.1:8000/wallet/getbalance/', {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -102,7 +115,7 @@ export default function WalletPage() {
             }
 
             // Load real transactions from API
-            const historyResponse = await fetch('https://upstartpy.onrender.com/wallet/history/', {
+            const historyResponse = await fetch('http://127.0.0.1:8000/wallet/history/', {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -135,7 +148,7 @@ export default function WalletPage() {
         setPaymentState('loading');
 
         try {
-            const response = await fetch(`https://upstartpy.onrender.com/wallet/verify-topup/${reference}`, {
+            const response = await fetch(`http://127.0.0.1:8000/wallet/verify-topup/${reference}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -202,13 +215,13 @@ export default function WalletPage() {
         setPaymentState('loading');
 
         try {
-            const response = await fetch('https://upstartpy.onrender.com/wallet/topup', {
+            const response = await fetch('http://127.0.0.1:8000/wallet/topup', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${user.access}`
                 },
-                body: JSON.stringify({ amount })
+                body: JSON.stringify({ amount, callback_url: window.location.href })
             });
 
             if (!response.ok) {
@@ -299,13 +312,13 @@ export default function WalletPage() {
     };
 
     return (
-        <div className="w-full max-w-[1400px] mx-auto py-10 px-5 font-sans text-gray-900">
+        <div className="w-full max-w-[1400px] mx-auto px-2.5 py-5 sm:px-5 sm:py-10 font-sans text-gray-900">
             {/* Toast Container */}
-            <div className="fixed top-5 right-5 z-[10000] flex flex-col gap-2" id="toastContainer">
+            <div className="fixed top-5 left-5 right-5 sm:left-auto sm:right-5 sm:w-auto z-[10000] flex flex-col gap-2 pointer-events-none" id="toastContainer">
                 {toasts.map(toast => (
                     <div
                         key={toast.id}
-                        className={`px-4 py-3 rounded-lg text-white text-sm shadow-lg animate-[slideIn_0.3s_ease] transition-opacity duration-300 ${toast.type === 'error' ? 'bg-red-500' :
+                        className={`px-4 py-3 rounded-lg text-white text-sm shadow-lg animate-[slideIn_0.3s_ease] transition-opacity duration-300 pointer-events-auto ${toast.type === 'error' ? 'bg-red-500' :
                                 toast.type === 'success' ? 'bg-green-500' :
                                     'bg-blue-500'
                             }`}
@@ -317,9 +330,9 @@ export default function WalletPage() {
 
             <div className="flex flex-col gap-6">
                 {/* Balance Card */}
-                <div className="bg-gradient-to-br from-[#1c6ef2] to-[#1a5bcc] text-white rounded-xl p-10 text-center shadow-lg shadow-[#1c6ef2]/30">
+                <div className="bg-gradient-to-br from-[#1c6ef2] to-[#1a5bcc] text-white rounded-xl p-6 sm:p-10 text-center shadow-lg shadow-[#1c6ef2]/30">
                     <h2 className="text-sm mb-3 opacity-90 font-medium">Total Balance</h2>
-                    <div className="text-5xl font-bold mb-3" id="balanceAmount">₦{balance.toFixed(2)}</div>
+                    <div className="text-4xl sm:text-5xl font-bold mb-3" id="balanceAmount">₦{balance.toFixed(2)}</div>
                     <div className="text-[13px] opacity-80">Available for withdrawal</div>
                 </div>
 
@@ -370,7 +383,7 @@ export default function WalletPage() {
 
             {/* Add Money Drawer */}
             <div
-                className={`fixed right-0 bottom-0 top-0 w-full max-w-[400px] bg-white shadow-[-4px_0_20px_rgba(0,0,0,0.15)] z-50 overflow-y-auto transition-transform duration-300 ${isAddMoneyOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                className={`fixed right-0 bottom-0 top-0 w-full sm:w-[400px] max-w-full bg-white shadow-[-4px_0_20px_rgba(0,0,0,0.15)] z-50 overflow-y-auto transition-transform duration-300 ${isAddMoneyOpen ? 'translate-x-0' : 'translate-x-full'}`}
                 id="addMoneyDrawer"
             >
                 <div className="flex flex-col h-full">
@@ -401,7 +414,7 @@ export default function WalletPage() {
 
             {/* Withdraw Drawer */}
             <div
-                className={`fixed right-0 bottom-0 top-0 w-full max-w-[400px] bg-white shadow-[-4px_0_20px_rgba(0,0,0,0.15)] z-50 overflow-y-auto transition-transform duration-300 ${isWithdrawOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                className={`fixed right-0 bottom-0 top-0 w-full sm:w-[400px] max-w-full bg-white shadow-[-4px_0_20px_rgba(0,0,0,0.15)] z-50 overflow-y-auto transition-transform duration-300 ${isWithdrawOpen ? 'translate-x-0' : 'translate-x-full'}`}
                 id="withdrawDrawer"
             >
                 <div className="flex flex-col h-full">
@@ -452,14 +465,14 @@ export default function WalletPage() {
 
             {/* Payment Modal */}
             <div className={`fixed inset-0 bg-black/50 z-[9998] transition-opacity duration-300 ${paymentModalOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}></div>
-            <div className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl max-w-[500px] w-[90%] z-[9999] p-8 md:p-10 text-center transition-all duration-300 ${paymentModalOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible'}`}>
+            <div className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[95%] max-w-none md:max-w-[500px] md:w-[90%] z-[9999] p-5 sm:p-8 md:p-10 text-center transition-all duration-300 ${paymentModalOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible'}`}>
                 <div className="w-full">
                     {paymentState === 'loading' && (
                         <div className="min-h-[300px] flex flex-col items-center justify-center">
                             <div className="mb-6 flex justify-center">
                                 <div className="w-[50px] h-[50px] border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
                             </div>
-                            <h3 className="text-2xl font-bold mb-3 text-gray-900">Processing</h3>
+                            <h3 className="text-xl md:text-2xl font-bold mb-3 text-gray-900">Processing</h3>
                             <p className="text-sm text-gray-600 mb-6">Please wait while we verify your transaction...</p>
                         </div>
                     )}
@@ -470,7 +483,7 @@ export default function WalletPage() {
                                     <span className="text-3xl text-green-500">✓</span>
                                 </div>
                             </div>
-                            <h3 className="text-2xl font-bold mb-3 text-gray-900">Payment Successful!</h3>
+                            <h3 className="text-xl md:text-2xl font-bold mb-3 text-gray-900">Payment Successful!</h3>
                             <p className="text-sm text-gray-600 mb-6">Your wallet has been funded.</p>
                             <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left w-full">
                                 <div className="flex justify-between items-center py-2 border-b border-gray-200">
@@ -497,7 +510,7 @@ export default function WalletPage() {
                                     <span className="text-3xl text-red-500">✕</span>
                                 </div>
                             </div>
-                            <h3 className="text-2xl font-bold mb-3 text-gray-900">Payment Failed</h3>
+                            <h3 className="text-xl md:text-2xl font-bold mb-3 text-gray-900">Payment Failed</h3>
                             <p className="text-sm text-gray-600 mb-6">{paymentDetails.message}</p>
                             <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left w-full">
                                 <div className="flex justify-between items-center py-2">

@@ -32,7 +32,7 @@ def personalized_feed(user):
         scored_products.append((score, product))
 
     scored_products.sort(key=lambda x: x[0], reverse=True)
-    print(scored_products)
+    # print(scored_products)
     recommended_products = [product for score, product in scored_products]
 
     return recommended_products

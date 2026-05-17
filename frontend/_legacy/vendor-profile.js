@@ -94,7 +94,7 @@ const vendorId = Number.parseInt(params.get("vendorId"))
 
 async function loadVendorProfile() {
   try{
-    const response = await fetch(`https://upstartpy.onrender.com/auth/user/${vendorId}`,{
+    const response = await fetch(`http://127.0.0.1:8000/auth/user/${vendorId}`,{
       method: "GET",
       headers: {
         "Content-Type":"application/json",
@@ -170,7 +170,7 @@ async function loadVendorProfile() {
                 try {
                     const shareData = {
                         title: `${vendor.info.username}'s Profile - Upstart`,
-                        url: `https://upstartpy.onrender.com/vendor-profile?vendorId=${vendorId}`
+                        url: `http://127.0.0.1:8000/vendor-profile?vendorId=${vendorId}`
                     };
 
                     // try {
@@ -195,7 +195,7 @@ async function loadVendorProfile() {
                 }
             } else {
                 // Fallback for browsers that don't support Web Share API
-                navigator.clipboard.writeText(`https://upstartpy.onrender.com/vendor-profile?vendorId=${vendorId}`)
+                navigator.clipboard.writeText(`http://127.0.0.1:8000/vendor-profile?vendorId=${vendorId}`)
                     .then(() => showToast('Profile link copied to clipboard!', 'success'))
                     .catch(() => showToast('Failed to copy link', 'error'));
             }
@@ -217,7 +217,7 @@ async function loadVendorProfile() {
 
 async function loadVendorProducts(vendorId) {
   try{
-    const response = await fetch(`https://upstartpy.onrender.com/products/vendor-products/${vendorId}`, {
+    const response = await fetch(`http://127.0.0.1:8000/products/vendor-products/${vendorId}`, {
       method: "GET",
       headers: {
         "Content-Type":"application/json",
@@ -353,7 +353,7 @@ async function loadVendorContent() {
 
   try {
     // Fetch content posted by this specific vendor
-    const res = await fetch(`https://upstartpy.onrender.com/customers/vendorcontents/${vendorId}`, {
+    const res = await fetch(`http://127.0.0.1:8000/customers/vendorcontents/${vendorId}`, {
       method: 'GET',
     })
     if (!res.ok) throw new Error('Failed to fetch')
@@ -398,7 +398,7 @@ async function openProductModal(productId) {
   if (currentUser) {
     headers["Authorization"] = `Bearer ${currentUser.access}`;
   }
-  const response = await fetch(`https://upstartpy.onrender.com/products/${productId}`,
+  const response = await fetch(`http://127.0.0.1:8000/products/${productId}`,
     {
       method: "GET",
       headers
@@ -483,7 +483,7 @@ async function openProductModal(productId) {
     }
 
     try{
-      const response = await fetch(`https://upstartpy.onrender.com/cart/cart-items/${productId}`,
+      const response = await fetch(`http://127.0.0.1:8000/cart/cart-items/${productId}`,
         {
           method: "POST",
           headers: {
@@ -541,7 +541,7 @@ document.getElementById('contactBtn').addEventListener('click', async() => {
     return;
   }
   try{
-    const response = await fetch(`https://upstartpy.onrender.com/chat/create/${vendorId}`,{
+    const response = await fetch(`http://127.0.0.1:8000/chat/create/${vendorId}`,{
       method: 'POST',
       headers: {
         "Authorization":`Bearer ${currentUser.access}`,

@@ -68,7 +68,7 @@ export default function CartPage(): JSX.Element {
 
     const fetchCart = async () => {
         try {
-            const res = await fetch('https://upstartpy.onrender.com/cart/cart-items/', {
+            const res = await fetch('http://127.0.0.1:8000/cart/cart-items/', {
                 headers: {
                     Authorization: `Bearer ${user?.access}`,
                     "Content-Type": "application/json"
@@ -101,7 +101,7 @@ export default function CartPage(): JSX.Element {
         setCartItems(prev => prev.filter(item => item.id !== cartItemId));
 
         try {
-            const res = await fetch(`https://upstartpy.onrender.com/cart/cart-items/${cartItemId}`, {
+            const res = await fetch(`http://127.0.0.1:8000/cart/cart-items/${cartItemId}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${user?.access}` }
             });
@@ -134,7 +134,7 @@ export default function CartPage(): JSX.Element {
         setCartItems(prev => prev.map(i => i.id === cartItemId ? { ...i, quantity: newQty } : i));
 
         try {
-            const res = await fetch(`https://upstartpy.onrender.com/cart/cart-items/${cartItemId}`, {
+            const res = await fetch(`http://127.0.0.1:8000/cart/cart-items/${cartItemId}`, {
                 method: 'PATCH',
                 headers: {
                     Authorization: `Bearer ${user?.access}`,
@@ -177,7 +177,7 @@ export default function CartPage(): JSX.Element {
         try {
             const cartIds = cartItems.map(item => item.id);
 
-            const res = await fetch('https://upstartpy.onrender.com/payment/create-order/', {
+            const res = await fetch('http://127.0.0.1:8000/payment/create-order/', {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json",
@@ -223,7 +223,7 @@ export default function CartPage(): JSX.Element {
 
     const handleProductClick = async (productId: number) => {
         try {
-            const res = await fetch(`https://upstartpy.onrender.com/products/${productId}`);
+            const res = await fetch(`http://127.0.0.1:8000/products/${productId}`);
             if (res.ok) {
                 const data = await res.json();
                 setSelectedProduct(data);
@@ -253,7 +253,7 @@ export default function CartPage(): JSX.Element {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-6 container mx-auto px-5 py-10" style={{ minWidth: '100%' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-4 sm:gap-6 container mx-auto px-2.5 py-5 sm:px-5 sm:py-10" style={{ minWidth: '100%' }}>
 
             {/* Toast Container */}
             <div className="fixed top-5 right-5 z-[10000] flex flex-col gap-2">
@@ -275,7 +275,7 @@ export default function CartPage(): JSX.Element {
                 <h2 className="text-xl font-bold mb-2 text-[#1d1d1d]">Shopping Cart</h2>
 
                 {loading ? (
-                    <div className="bg-white rounded-xl p-8 text-center shadow-legacy-card">
+                    <div className="bg-white rounded-xl p-5 sm:p-8 text-center shadow-legacy-card">
                         <p>Loading cart...</p>
                     </div>
                 ) : cartItems.length === 0 ? (
@@ -349,7 +349,7 @@ export default function CartPage(): JSX.Element {
             </div>
 
             {/* Cart Summary */}
-            <div className="bg-white rounded-xl p-6 shadow-legacy-card h-fit sticky top-[100px]">
+            <div className="bg-white rounded-xl p-5 sm:p-6 shadow-legacy-card h-fit sticky top-[100px]">
                 <h3 className="text-base font-semibold mb-4 text-[#1d1d1d]">Order Summary</h3>
                 <div className="flex justify-between mb-3 text-sm text-[#4b4b4b]">
                     <span>Subtotal ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})</span>
@@ -373,7 +373,7 @@ export default function CartPage(): JSX.Element {
             {showCheckoutModal && (
                 <>
                     <div className="fixed inset-0 bg-black/50 z-[9998] transition-opacity duration-300"></div>
-                    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl max-w-[500px] w-[90%] z-[9999] p-8 md:p-10 text-center transition-all duration-300">
+                    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[95%] max-w-none md:max-w-[500px] md:w-[90%] z-[9999] p-5 sm:p-8 md:p-10 text-center transition-all duration-300">
 
                         {/* Loading */}
                         {checkoutLoading && (

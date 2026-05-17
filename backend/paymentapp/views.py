@@ -180,7 +180,7 @@ class InitializeOrderView(APIView):
                 "product_id":product.id
 
             })
-            print(vendor_items)
+            # print(vendor_items)
         # Start atomic transaction
         with db_transaction.atomic():
             # Get buyer wallet
@@ -199,6 +199,9 @@ class InitializeOrderView(APIView):
             orders_created = []
             
             # Process each vendor's items
+            from orders.models import OrderItem
+            from notification.utils import send_notification_to_user
+            
             for vendor_id, items in vendor_items.items():
                 vendor_total = Decimal('0.00')
                 
@@ -222,14 +225,24 @@ class InitializeOrderView(APIView):
                     Product.objects.filter(pk=product_id).update(quantity=F('quantity') - quantity)
                     vendor_total += amount
 
+                vendor_user = User.objects.get(id=vendor_id)
+                
                 # Create ONE order per vendor
                 order = Order.objects.create(
                     buyer=user,
-                    vendor=vendor_id,  # Changed from vendor_id to vendor (ForeignKey field)
+                    vendor=vendor_user,  # Changed from vendor_id to vendor (ForeignKey field)
                     amount=vendor_total,
                     status='pending'
                 )
                 orders_created.append(order)
+
+                for item in items:
+                    OrderItem.objects.create(
+                        order=order,
+                        product_id=item['product_id'],
+                        quantity=item['quantity'],
+                        price=item['amount'] / item['quantity']
+                    )
 
                 # Create Escrow record
                 EscrowWallet.objects.create(
@@ -238,7 +251,13 @@ class InitializeOrderView(APIView):
                     status="HELD"
                 )
 
-                
+                # Send notification to vendor
+                send_notification_to_user(
+                    user=vendor_user,
+                    title="New Order Received",
+                    message=f"You have a new order (ID: {order.id}) from {user.username}. Please review it.",
+                    notification_type="order"
+                )
 
             # Debit buyer wallet ONCE (after all orders created)
             BuyerWallet.objects.filter(pk=buyer_wallet.pk).update(

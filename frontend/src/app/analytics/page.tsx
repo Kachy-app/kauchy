@@ -45,16 +45,17 @@ export default function AnalyticsPage() {
 
     const loadAnalytics = async () => {
         try {
-            const res = await fetch('https://upstartpy.onrender.com/analytics/overview/', {
+            const res = await fetch('http://127.0.0.1:8000/analytics/overview/', {
                 headers: { Authorization: `Bearer ${user.access}` }
             });
             if (res.ok) {
                 const data = await res.json();
                 setStats(data || {});
+                console.log(data)
             }
 
             // Top Products
-            const resTop = await fetch('https://upstartpy.onrender.com/analytics/top-products-vendor/', {
+            const resTop = await fetch('http://127.0.0.1:8000/analytics/top-products-vendor/', {
                 headers: { Authorization: `Bearer ${user.access}` }
             });
             if (resTop.ok) {
@@ -72,6 +73,8 @@ export default function AnalyticsPage() {
                     status: ["Completed", "Pending", "Processing"][Math.floor(Math.random() * 3)],
                 });
             }
+
+            // const mockOrders = fetch('')
             setRecentOrders(mockOrders);
 
         } catch (e) {
@@ -140,7 +143,7 @@ export default function AnalyticsPage() {
     if (!user) return null; // or loading spinner
 
     return (
-        <div className="p-8 bg-gray-50 min-h-screen">
+        <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
             <h1 className="text-3xl font-bold mb-6 text-gray-800">Analytics Dashboard</h1>
 
             {/* Stats Cards */}

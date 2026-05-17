@@ -17,9 +17,14 @@ class TopUpWAlletView(APIView):
     def post(self,request):
         user = request.user
         amount = request.data.get("amount")
-        amount = int(amount)
+        callback_url = request.data.get("callback_url")
+        
+        try:
+            amount = int(amount)
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid amount"})
 
-        if not amount or int(amount) <=0:
+        if not amount or amount <=0:
             return Response({"error": "Invalid amount"})
         
 
@@ -42,8 +47,9 @@ class TopUpWAlletView(APIView):
             "amount":amount*100,
             "reference":reference,
             "metadata":{"wallet_top_up":True}
-
         }
+        if callback_url:
+            data["callback_url"] = callback_url
 
         res = requests.post("https://api.paystack.co/transaction/initialize",json=data,headers=headers)
 

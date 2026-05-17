@@ -43,7 +43,6 @@ class UnifiedChatConsumer(AsyncWebsocketConsumer):
                 self.channel_name
             )
         await change_online_status(self.user, False)
-        await self.close()
 
 
     async def receive(self, text_data):
@@ -84,7 +83,7 @@ class UnifiedChatConsumer(AsyncWebsocketConsumer):
         elif action == "get_message":
             conversation_id = data["conversation_id"]
             messages = await load_user_messages(conversation_id)
-            print(conversation_id)
+            # print(conversation_id)
 
             await self.send(text_data=json.dumps({
                 "type":"my_messages",

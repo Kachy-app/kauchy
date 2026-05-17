@@ -26,5 +26,5 @@ class GetUserProfile(APIView):
         serializer = UserSerializer(data)
         response = {"info": serializer.data}
         response["sales"] = int(total_sales_quantity)
-        print(response)
+        # print(response)
         return Response(response, status=status.HTTP_200_OK)

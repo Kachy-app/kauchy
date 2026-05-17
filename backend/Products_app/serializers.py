@@ -17,7 +17,14 @@ class ProductSerializer(serializers.ModelSerializer):
     vendor_rating = serializers.CharField(source="vendor_id.rating", read_only=True)
     institute = serializers.CharField(source="vendor_id.institute", read_only=True)
     pfp = serializers.URLField(source="vendor_id.profile_url", read_only=True)
+    has_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = "__all__"
+
+    def get_has_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.product_likes.filter(user=request.user).exists()
+        return False
