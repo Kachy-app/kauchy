@@ -37,15 +37,22 @@ function VendorProfileContent() {
                 setVendor(data);
             }
 
+            const headers: Record<string, string> = {
+                "Content-Type": "application/json"
+            };
+            if (user && user.access) {
+                headers["Authorization"] = `Bearer ${user.access}`;
+            }
+
             // Fetch Vendor Products
-            const resProducts = await fetch(`http://127.0.0.1:8000/products/vendor-products/${vendorId}`);
+            const resProducts = await fetch(`http://127.0.0.1:8000/products/vendor-products/${vendorId}`, { headers });
             if (resProducts.ok) {
                 const data = await resProducts.json();
                 setProducts(Array.isArray(data) ? data : []);
             }
 
             // Fetch Vendor Content
-            const resContent = await fetch(`http://127.0.0.1:8000/customers/vendorcontents/${vendorId}`);
+            const resContent = await fetch(`http://127.0.0.1:8000/customers/vendorcontents/${vendorId}`, { headers });
             if (resContent.ok) {
                 const data = await resContent.json();
                 setContent(Array.isArray(data) ? data : []);

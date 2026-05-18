@@ -371,22 +371,12 @@ class LikeContentView(APIView):
     def post(self, request, content_id):
         try:
             content = VendorContents.objects.get(id=content_id)
-            
-            # Check if already liked
-            like = ContentLike.objects.filter(user=request.user, content=content)
-            if like.exists():
-                like.delete()
-                return Response(
-                    {"message": "Successfully unliked content"}, 
-                    status=status.HTTP_200_OK
-                )
-            
-            like = ContentLike.objects.create(user=request.user, content=content)
+            like, created = ContentLike.objects.get_or_create(user=request.user, content=content)
             serializer = ContentLikeSerializer(like)
             
             return Response({
                 **serializer.data,
-                "message": "Successfully liked content"
+                "message": "Successfully liked content" if created else "Already liked content"
             }, status=status.HTTP_201_CREATED)
         
         except VendorContents.DoesNotExist:
@@ -402,21 +392,16 @@ class LikeContentView(APIView):
     def delete(self, request, content_id):
         try:
             content = VendorContents.objects.get(id=content_id)
-            like = ContentLike.objects.get(user=request.user, content=content)
-            like.delete()
-            
-            # Get updated likes count after deletion
-            updated_likes_count = content.likes_count
+            ContentLike.objects.filter(user=request.user, content=content).delete()
+            content.refresh_from_db()
             
             return Response({
                 "message": "Successfully unliked",
-                "content_likes_count": updated_likes_count
+                "content_likes_count": content.likes_count
             }, status=status.HTTP_200_OK)
         
         except VendorContents.DoesNotExist:
             return Response({"error": "Content not found"}, status=status.HTTP_404_NOT_FOUND)
-        except ContentLike.DoesNotExist:
-            return Response({"error": "You have not liked this content"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
