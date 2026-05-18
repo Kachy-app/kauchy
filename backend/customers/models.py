@@ -39,6 +39,7 @@ class VendorContents(models.Model):
     caption = models.TextField(blank=True, null=True)
     likes_count = models.PositiveIntegerField(default=0)
     reviews_count = models.PositiveIntegerField(default=0)
+    views_count = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):

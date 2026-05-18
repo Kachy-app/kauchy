@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import GetMyContents, TopCustomersView, TopVendorsView, UpdateProfileView, EditProfileView, DeleteProfileView, UploadContentView, UserDeleteProfile, ReviewContentView, LikeContentView, FollowVendorView, GetContentReviewsView, GetUserProfile, GetVendorContents
+from .views import GetMyContents, TopCustomersView, TopVendorsView, UpdateProfileView, EditProfileView, DeleteProfileView, UploadContentView, UserDeleteProfile, ReviewContentView, LikeContentView, FollowVendorView, GetContentReviewsView, GetUserProfile, GetVendorContents, IncrementContentView
 
 
 urlpatterns = [
@@ -14,8 +14,8 @@ urlpatterns = [
     path('content/<int:content_id>/reviews/', GetContentReviewsView.as_view(), name='get-content-reviews'),
     path('content/<int:content_id>/review/', ReviewContentView.as_view(), name='review-content'),
     path('content/<int:content_id>/like/', LikeContentView.as_view(), name='like-content'),
+    path('content/<int:content_id>/view/', IncrementContentView.as_view(), name='view-content'),
     path('vendor/<int:vendor_id>/follow/', FollowVendorView.as_view(), name='follow-vendor'),
     path('profile/user/', GetUserProfile.as_view(), name='get-user-profile'),
     path('vendorcontents/<int:pk>', GetVendorContents.as_view(), name="vendor_contents")
-
 ]

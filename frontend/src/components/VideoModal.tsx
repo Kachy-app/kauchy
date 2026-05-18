@@ -45,6 +45,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
     const [liked, setLiked] = useState(isLikedByUser);
     const [likesCount, setLikesCount] = useState(likes);
     const [likeLoading, setLikeLoading] = useState(false);
+    const [viewsCount, setViewsCount] = useState(views);
 
     // Comments state
     const [comments, setComments] = useState<Comment[]>([]);
@@ -70,8 +71,29 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
     useEffect(() => {
         if (contentId) {
             fetchComments();
+            incrementView();
         }
     }, [contentId]);
+
+    async function incrementView() {
+        if (!contentId) return;
+        try {
+            const res = await fetch(`http://127.0.0.1:8000/customers/content/${contentId}/view/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (typeof data.views === 'number') {
+                    setViewsCount(data.views);
+                }
+            }
+        } catch (e) {
+            console.error('Error incrementing view count:', e);
+        }
+    }
 
     async function fetchComments() {
         if (!contentId) return;
@@ -258,7 +280,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
                     <div className="bg-[#f4f6fa] p-3 rounded-lg flex-shrink-0 mb-4">
                         <div className="flex justify-between mb-1.5 text-sm text-[#555]">
                             <span>Views</span>
-                            <span className="font-medium">{views}</span>
+                            <span className="font-medium">{viewsCount}</span>
                         </div>
                         <div className="flex justify-between text-sm text-[#555]">
                             <span>Likes</span>

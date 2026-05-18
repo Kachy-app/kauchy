@@ -30,10 +30,11 @@ class VendorProfilesSerializer(serializers.ModelSerializer):
 class VendorContentSerializer(serializers.ModelSerializer):
     content_type = serializers.SerializerMethodField()
     is_liked_by_user = serializers.SerializerMethodField()
+    views = serializers.IntegerField(source='views_count', read_only=True)
     
     class Meta:
         model = VendorContents
-        fields = ['id', 'user', 'video', 'pictures', 'caption', 'uploaded_at', 'content_type', 'likes_count', 'reviews_count', 'is_liked_by_user']
+        fields = ['id', 'user', 'video', 'pictures', 'caption', 'uploaded_at', 'content_type', 'likes_count', 'reviews_count', 'is_liked_by_user', 'views']
         
     def get_content_type(self, obj):
         if obj.video:

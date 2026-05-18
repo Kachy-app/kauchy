@@ -254,7 +254,7 @@ class AllProductsView(APIView):
 
 class GetVendorProducts(APIView):
     def get(self, request, pk):
-        data = Product.objects.filter(vendor_id=pk).prefetch_related('product')
+        data = Product.objects.filter(vendor_id=pk).select_related('vendor_id')
         serializer = ProductSerializer(data, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

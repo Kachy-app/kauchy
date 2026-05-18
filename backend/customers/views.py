@@ -373,10 +373,12 @@ class LikeContentView(APIView):
             content = VendorContents.objects.get(id=content_id)
             
             # Check if already liked
-            if ContentLike.objects.filter(user=request.user, content=content).exists():
+            like = ContentLike.objects.filter(user=request.user, content=content)
+            if like.exists():
+                like.delete()
                 return Response(
-                    {"error": "You have already liked this content"}, 
-                    status=status.HTTP_400_BAD_REQUEST
+                    {"message": "Successfully unliked content"}, 
+                    status=status.HTTP_200_OK
                 )
             
             like = ContentLike.objects.create(user=request.user, content=content)
@@ -565,4 +567,29 @@ class GetVendorContents(APIView):
         contents = VendorContents.objects.filter(user=pk)
         serializer = VendorContentSerializer(contents, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class IncrementContentView(APIView):
+    permission_classes = []
+
+    @extend_schema(
+        summary="Increment Content Views",
+        description="Increment the view count for a specific piece of vendor content.",
+        responses={200: dict},
+    )
+    def post(self, request, content_id):
+        try:
+            content = VendorContents.objects.get(id=content_id)
+            content.views_count += 1
+            content.save(update_fields=['views_count'])
+            return Response(
+                {"message": "View count updated successfully", "views": content.views_count},
+                status=status.HTTP_200_OK
+            )
+        except VendorContents.DoesNotExist:
+            return Response(
+                {"error": "Content not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
 
