@@ -315,11 +315,21 @@ class ProductReviewListCreateView(APIView):
 
         serializer = ProductReviewSerializer(paginated_reviews, many=True)
 
+        user_has_purchased = False
+        if request.user and request.user.is_authenticated:
+            from orders.models import OrderItem
+            user_has_purchased = OrderItem.objects.filter(
+                product=product,
+                order__buyer=request.user,
+                order__status='completed'
+            ).exists()
+
         return Response({
             "reviews": serializer.data,
             "total_reviews": reviews.count(),
             "next": paginator.get_next_link(),
-            "previous": paginator.get_previous_link()
+            "previous": paginator.get_previous_link(),
+            "user_has_purchased": user_has_purchased
         }, status=status.HTTP_200_OK)
 
     @extend_schema(
@@ -338,6 +348,17 @@ class ProductReviewListCreateView(APIView):
         if request.user == product.vendor_id:
             return Response({"error": "You cannot review your own product"}, status=status.HTTP_403_FORBIDDEN)
 
+        # Check if the user has purchased the product
+        from orders.models import OrderItem
+        has_purchased = OrderItem.objects.filter(
+            product=product,
+            order__buyer=request.user,
+            order__status='completed'
+        ).exists()
+
+        if not has_purchased:
+            return Response({"error": "You can only review products you have purchased and completed delivery for."}, status=status.HTTP_403_FORBIDDEN)
+
         serializer = ProductReviewSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user, product=product)
@@ -350,3 +371,4 @@ class ProductReviewListCreateView(APIView):
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+

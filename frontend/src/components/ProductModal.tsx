@@ -90,6 +90,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
     const [reviewRating, setReviewRating] = useState(0);
     const [submittingReview, setSubmittingReview] = useState(false);
     const [activeImage, setActiveImage] = useState(0);
+    const [userHasPurchased, setUserHasPurchased] = useState(false);
 
     const reviewsRef = useRef<HTMLDivElement>(null);
 
@@ -110,11 +111,18 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
         if (!productId) return;
         setLoadingReviews(true);
         try {
-            const res = await fetch(`http://127.0.0.1:8000/products/${productId}/reviews/`);
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            if (user && user.access) {
+                headers['Authorization'] = `Bearer ${user.access}`;
+            }
+            const res = await fetch(`http://127.0.0.1:8000/products/${productId}/reviews/`, { headers });
             if (res.ok) {
                 const data = await res.json();
                 setReviews(data.reviews || []);
                 setTotalReviews(data.total_reviews || 0);
+                setUserHasPurchased(data.user_has_purchased || false);
             }
         } catch (e) {
             console.error('Error fetching reviews', e);
@@ -360,7 +368,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                             </div>
 
                             {/* Review Form */}
-                            {user && !isOwnProduct && (
+                            {user && !isOwnProduct && userHasPurchased && (
                                 <form onSubmit={handleSubmitReview} className="mt-4 pt-4 border-t border-gray-200">
                                     <div className="flex items-center gap-2 mb-3">
                                         <span className="text-sm font-medium text-gray-700">Your rating:</span>
@@ -381,6 +389,13 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                                         {submittingReview ? 'Submitting...' : 'Submit Review'}
                                     </button>
                                 </form>
+                            )}
+                            {user && !isOwnProduct && !userHasPurchased && (
+                                <div className="mt-4 p-4 bg-amber-50/60 border border-amber-200/80 rounded-xl text-center flex flex-col items-center gap-1.5 animate-fadeIn">
+                                    <span className="text-amber-500 text-lg">🔒</span>
+                                    <p className="text-sm font-semibold text-amber-800 leading-snug">Verified Purchase Required</p>
+                                    <p className="text-xs text-amber-600 leading-normal max-w-[320px]">Only verified buyers who have purchased this product and completed their delivery on the platform can drop a review.</p>
+                                </div>
                             )}
                             {!user && (
                                 <p className="mt-4 pt-4 border-t border-gray-200 text-center text-sm text-gray-500">
