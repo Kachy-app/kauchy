@@ -91,7 +91,7 @@ export default function WalletPage() {
         }
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/wallet/getbalance/', {
+            const response = await fetch('https://kachy-production.up.railway.app/wallet/getbalance/', {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -110,12 +110,12 @@ export default function WalletPage() {
             }
 
             const data = await response.json();
-            if (data && typeof data.balance === 'number') {
-                setBalance(data.balance);
+            if (data && data.balance !== undefined) {
+                setBalance(typeof data.balance === 'string' ? parseFloat(data.balance) : data.balance);
             }
 
             // Load real transactions from API
-            const historyResponse = await fetch('http://127.0.0.1:8000/wallet/history/', {
+            const historyResponse = await fetch('https://kachy-production.up.railway.app/wallet/history/', {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -148,7 +148,7 @@ export default function WalletPage() {
         setPaymentState('loading');
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/wallet/verify-topup/${reference}`, {
+            const response = await fetch(`https://kachy-production.up.railway.app/wallet/verify-topup/${reference}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -215,7 +215,7 @@ export default function WalletPage() {
         setPaymentState('loading');
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/wallet/topup', {
+            const response = await fetch('https://kachy-production.up.railway.app/wallet/topup', {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

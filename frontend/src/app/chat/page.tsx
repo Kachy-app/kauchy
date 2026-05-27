@@ -59,7 +59,7 @@ const ProductLinkPreview = ({ url }: { url: string }) => {
         }
 
         let cancelled = false;
-        fetch(`http://127.0.0.1:8000/products/${productId}`)
+        fetch(`https://kachy-production.up.railway.app/products/${productId}`)
             .then(res => {
                 if (!res.ok) throw new Error('Not found');
                 return res.json();
@@ -115,24 +115,41 @@ const ProductLinkPreview = ({ url }: { url: string }) => {
     );
 };
 
-const MessageContent = ({ text }: { text: string }) => {
+const MessageContent = ({ text, file }: { text?: string | null; file?: string | null }) => {
     const urlSplitRegex = /(https?:\/\/[^\s]+)/g;
     const urlTestRegex = /^https?:\/\/[^\s]+$/;
-    const parts = text.split(urlSplitRegex);
     
+    const isVideo = file && /\.(mp4|webm|ogg|mov)$/i.test(file);
+    const isImage = file && /\.(jpg|jpeg|png|gif|webp)$/i.test(file);
+
     return (
-        <div style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
-            {parts.map((part, i) => {
-                if (urlTestRegex.test(part)) {
-                    if (part.includes("productId=")) {
-                        return <ProductLinkPreview key={i} url={part} />;
-                    } else {
-                        return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline opacity-90 hover:opacity-100 break-all">{part}</a>;
-                    }
-                }
-                if (!part) return null; // skip empty strings from split
-                return <span key={i}>{part}</span>;
-            })}
+        <div style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }} className="flex flex-col gap-2">
+            {file && (
+                <div className="w-full max-w-[240px] sm:max-w-[200px] overflow-hidden rounded-lg mt-1">
+                    {isVideo ? (
+                        <video src={file} controls className="w-full h-auto rounded-lg" />
+                    ) : isImage ? (
+                        <img src={file} alt="attachment" className="w-full h-auto object-cover rounded-lg" />
+                    ) : (
+                        <a href={file} target="_blank" rel="noopener noreferrer" className="underline break-all bg-black/10 p-2 rounded block text-center text-sm">Download Attachment</a>
+                    )}
+                </div>
+            )}
+            {text && (
+                <div>
+                    {text.split(urlSplitRegex).map((part, i) => {
+                        if (urlTestRegex.test(part)) {
+                            if (part.includes("productId=")) {
+                                return <ProductLinkPreview key={i} url={part} />;
+                            } else {
+                                return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline opacity-90 hover:opacity-100 break-all">{part}</a>;
+                            }
+                        }
+                        if (!part) return null; // skip empty strings from split
+                        return <span key={i}>{part}</span>;
+                    })}
+                </div>
+            )}
         </div>
     );
 };
@@ -144,6 +161,7 @@ export default function ChatPage() {
     const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [messageText, setMessageText] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
     const [socket, setSocket] = useState<WebSocket | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -153,6 +171,7 @@ export default function ChatPage() {
     const sidebarRef = useRef<HTMLDivElement>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const activeConversationIdRef = useRef<number | null>(null);
     const statusTransitionTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -180,7 +199,7 @@ export default function ChatPage() {
 
             if (vendorIdParamRef.current) {
                 try {
-                    await fetch(`http://127.0.0.1:8000/api/chat/create/${vendorIdParamRef.current}`, {
+                    await fetch(`https://kachy-production.up.railway.app/api/chat/create/${vendorIdParamRef.current}`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${user.access}`,
@@ -192,7 +211,7 @@ export default function ChatPage() {
                 }
             }
 
-            const ws = new WebSocket(`ws://127.0.0.1:8000/ws/chat?token=${user.access}`);
+            const ws = new WebSocket(`wss://kachy-production.up.railway.app/ws/chat?token=${user.access}`);
 
             ws.onopen = () => {
                 console.log("WS Connected");
@@ -249,7 +268,8 @@ export default function ChatPage() {
                 break;
             case 'new_message':
                 const newMsg: Message = {
-                    text: data.message,
+                    text: data.message || "",
+                    file: data.file,
                     timestamp: data.timestamp,
                     sender: data.sender, // ID
                     conversation_id: data.conversation_id,
@@ -278,7 +298,8 @@ export default function ChatPage() {
                             return {
                                 ...c,
                                 last_message: {
-                                    text: data.message,
+                                    text: data.message || "",
+                                    file: data.file,
                                     timestamp: data.timestamp,
                                     sender: data.sender,
                                     is_read: false
@@ -374,6 +395,34 @@ export default function ChatPage() {
     const resetTextareaHeight = () => {
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
+        }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !activeConversationId || !user) return;
+        
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append("conversation_id", activeConversationId.toString());
+        formData.append("file", file);
+
+        try {
+            const res = await fetch("https://kachy-production.up.railway.app/api/chat/upload/", {
+                method: "POST",
+                headers: {
+                    'Authorization': `Bearer ${user.access}`
+                },
+                body: formData
+            });
+            if (!res.ok) {
+                console.error("Upload failed");
+            }
+        } catch (err) {
+            console.error("Upload error", err);
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
 
@@ -545,7 +594,7 @@ export default function ChatPage() {
 
                                 return (
                                     <div key={idx} className={`animate-pop-in flex flex-col max-w-full ${isSent ? "items-end" : "items-start"} ${!showTimestamp ? '-mb-1.5 sm:-mb-1' : ''}`}>
-                                        <div className={`p-3 px-3.5 rounded-xl text-sm leading-relaxed inline-block max-w-[70%] sm:max-w-[85%] ${isSent ? "bg-[#1c6ef2] text-white" : "bg-[#ffb800] text-gray-900"}`}><MessageContent text={msg.text} /></div>
+                                        <div className={`p-3 px-3.5 rounded-xl text-sm leading-relaxed inline-block max-w-[70%] sm:max-w-[85%] ${isSent ? "bg-[#1c6ef2] text-white" : "bg-[#ffb800] text-gray-900"}`}><MessageContent text={msg.text} file={msg.file} /></div>
                                         {showTimestamp && (
                                             <div className="text-[11px] text-[#4b4b4b] mt-1 ml-0.5 sm:text-[10px]">
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -559,6 +608,15 @@ export default function ChatPage() {
                         </div>
 
                         <div className="flex gap-2 p-4 border-t border-[#e5e7eb] bg-white shrink-0 sm:p-2.5 sm:gap-1.5 items-end">
+                            <input type="file" ref={fileInputRef} hidden onChange={handleFileUpload} accept="video/*,image/*" />
+                            <button 
+                                className={`bg-[#f4f6fa] text-[#4b4b4b] w-[44px] h-[44px] rounded-xl flex items-center justify-center text-xl transition-colors duration-200 border-none sm:w-10 sm:h-10 shrink-0 ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#e5e7eb] cursor-pointer'}`}
+                                onClick={() => !isUploading && fileInputRef.current?.click()}
+                                title="Send video/image"
+                                disabled={isUploading}
+                            >
+                                {isUploading ? '...' : '+'}
+                            </button>
                             <textarea
                                 ref={textareaRef}
                                 value={messageText}

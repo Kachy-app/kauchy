@@ -302,7 +302,7 @@ document.getElementById("signupForm").addEventListener("submit", async (e) => {
   console.log(newUser);
 
   try{
-    const response = await fetch('http://127.0.0.1:8000/auth/users/',
+    const response = await fetch('https://upstartpy.onrender.com/auth/users/',
       {
         method: "POST",
         headers: {"Content-Type":"application/json"},

@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   try {
-    self.ws = new WebSocket(`ws://127.0.0.1:8000/ws/chat?token=${currentUser.access}`)
+    self.ws = new WebSocket(`wss://upstartpy.onrender.com/ws/chat?token=${currentUser.access}`)
     
     ws.onopen = async function() {
       console.log('✅ WebSocket connected successfully');

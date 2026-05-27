@@ -41,7 +41,7 @@ export default function Navbar() {
 
         const fetchWallet = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/wallet/getbalance/', {
+                const response = await fetch('https://kachy-production.up.railway.app/wallet/getbalance/', {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -50,8 +50,8 @@ export default function Navbar() {
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    if (data && typeof data.balance === 'number') {
-                        setWalletBalance(data.balance);
+                    if (data && data.balance !== undefined) {
+                        setWalletBalance(typeof data.balance === 'string' ? parseFloat(data.balance) : data.balance);
                     }
                 }
             } catch (error) {
@@ -61,7 +61,7 @@ export default function Navbar() {
 
         const fetchCart = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/cart/cart-items/', {
+                const response = await fetch('https://kachy-production.up.railway.app/cart/cart-items/', {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -85,7 +85,7 @@ export default function Navbar() {
     useEffect(() => {
         if (!user || !user.access) return;
 
-        const wsHost = window.location.hostname === 'localhost' ? 'ws://127.0.0.1:8000' : `wss://${window.location.hostname}`;
+        const wsHost = window.location.hostname === 'localhost' ? 'wss://kachy-production.up.railway.app' : `wss://${window.location.hostname}`;
         const ws = new WebSocket(`${wsHost}/ws/notifications/?token=${user.access}`);
         wsRef.current = ws;
 
@@ -171,7 +171,7 @@ export default function Navbar() {
                 <div className="shrink-0 flex items-center">
                     <Link href="/" className="flex items-center gap-2 no-underline font-bold text-blue-600 text-lg w-[144px] h-[48px] overflow-hidden" title="Home">
                         <img
-                            src="/Upstart(2).png"
+                            src="/kauchy_logo.png"
                             alt="Upstart"
                             className="h-[140px] w-auto object-cover object-[30%_40%] max-w-none"
                         />

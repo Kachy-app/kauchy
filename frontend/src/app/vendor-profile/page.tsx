@@ -31,7 +31,7 @@ function VendorProfileContent() {
     const loadVendorData = async () => {
         try {
             // Fetch Vendor Info
-            const resVendor = await fetch(`http://127.0.0.1:8000/auth/user/${vendorId}`);
+            const resVendor = await fetch(`https://kachy-production.up.railway.app/auth/user/${vendorId}`);
             if (resVendor.ok) {
                 const data = await resVendor.json();
                 setVendor(data);
@@ -45,14 +45,14 @@ function VendorProfileContent() {
             }
 
             // Fetch Vendor Products
-            const resProducts = await fetch(`http://127.0.0.1:8000/products/vendor-products/${vendorId}`, { headers });
+            const resProducts = await fetch(`https://kachy-production.up.railway.app/products/vendor-products/${vendorId}`, { headers });
             if (resProducts.ok) {
                 const data = await resProducts.json();
                 setProducts(Array.isArray(data) ? data : []);
             }
 
             // Fetch Vendor Content
-            const resContent = await fetch(`http://127.0.0.1:8000/customers/vendorcontents/${vendorId}`, { headers });
+            const resContent = await fetch(`https://kachy-production.up.railway.app/customers/vendorcontents/${vendorId}`, { headers });
             if (resContent.ok) {
                 const data = await resContent.json();
                 setContent(Array.isArray(data) ? data : []);
@@ -71,7 +71,7 @@ function VendorProfileContent() {
             return;
         }
         try {
-            const res = await fetch(`http://127.0.0.1:8000/chat/create/${vendorId}`, {
+            const res = await fetch(`https://kachy-production.up.railway.app/chat/create/${vendorId}`, {
                 method: 'POST',
                 headers: {
                     "Authorization": `Bearer ${user.access}`,

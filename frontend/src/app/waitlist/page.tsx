@@ -17,7 +17,7 @@ export default function WaitlistPage() {
     setErrorMessage('Please enter a valid email or try again later.');
     
     try {
-      const res = await fetch('http://127.0.0.1:8000/waitlist/', {
+      const res = await fetch('https://kachy-production.up.railway.app/waitlist/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

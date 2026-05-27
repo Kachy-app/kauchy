@@ -46,7 +46,7 @@ export default function InventoryPage() {
         setLoading(true);
         try {
             if (activeTab === 'inventory') {
-                const res = await fetch('http://127.0.0.1:8000/products/my_products/', {
+                const res = await fetch('https://kachy-production.up.railway.app/products/my_products/', {
                     headers: { Authorization: `Bearer ${user.access}` }
                 });
                 if (res.ok) {
@@ -54,7 +54,7 @@ export default function InventoryPage() {
                     setProducts(Array.isArray(data) ? data : []);
                 }
             } else {
-                const res = await fetch(`http://127.0.0.1:8000/customers/mycontents/?_=${Date.now()}`, {
+                const res = await fetch(`https://kachy-production.up.railway.app/customers/mycontents/?_=${Date.now()}`, {
                     headers: { Authorization: `Bearer ${user.access}` }
                 });
                 if (res.ok) {
@@ -72,7 +72,7 @@ export default function InventoryPage() {
     const handleDeleteProduct = async (id: number) => {
         if (!confirm("Delete product?")) return;
         try {
-            const res = await fetch(`http://127.0.0.1:8000/products/${id}`, {
+            const res = await fetch(`https://kachy-production.up.railway.app/products/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${user.access}` }
             });
@@ -135,7 +135,7 @@ export default function InventoryPage() {
         });
 
         try {
-            const res = await fetch('http://127.0.0.1:8000/products/create', {
+            const res = await fetch('https://kachy-production.up.railway.app/products/create', {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${user.access}` },
                 body: formData
@@ -155,7 +155,7 @@ export default function InventoryPage() {
         const fd = new FormData(e.currentTarget);
         const data: any = Object.fromEntries(fd.entries());
         try {
-            const res = await fetch(`http://127.0.0.1:8000/products/${editingProduct.id}`, {
+            const res = await fetch(`https://kachy-production.up.railway.app/products/${editingProduct.id}`, {
                 method: 'PUT',
                 headers: {
                     "Content-Type": "application/json",
@@ -211,7 +211,7 @@ export default function InventoryPage() {
         formData.append('video', contentVideoFile);
         
         try {
-            const res = await fetch('http://127.0.0.1:8000/customers/content/upload/', {
+            const res = await fetch('https://kachy-production.up.railway.app/customers/content/upload/', {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${user.access}` },
                 body: formData

@@ -39,6 +39,7 @@ class ConversationSerializer(serializers.ModelSerializer):
         if last_msg:
             return {
                 'text': last_msg.text,
+                'file': last_msg.file.url if last_msg.file else None,
                 'sender': last_msg.sender.id,
                 'is_mine': last_msg.sender == self.context.get('request_user'),
                 'is_read': last_msg.is_read

@@ -452,7 +452,7 @@ async function updateWalletBalance() {
   if(!currentUser) return
 
   try{
-    const response = await fetch('http://127.0.0.1:8000/wallet/getbalance/',
+    const response = await fetch('https://upstartpy.onrender.com/wallet/getbalance/',
       {
         method: "GET",
         headers: {
@@ -492,7 +492,7 @@ async function updateCartBadge() {
   if (!currentUser) return
 
   try{
-    const response = await fetch('http://127.0.0.1:8000/cart/cart-items/',
+    const response = await fetch('https://upstartpy.onrender.com/cart/cart-items/',
       {
         method: "GET",
         headers: {

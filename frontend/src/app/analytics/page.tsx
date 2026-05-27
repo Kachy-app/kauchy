@@ -45,7 +45,7 @@ export default function AnalyticsPage() {
 
     const loadAnalytics = async () => {
         try {
-            const res = await fetch('http://127.0.0.1:8000/analytics/overview/', {
+            const res = await fetch('https://kachy-production.up.railway.app/analytics/overview/', {
                 headers: { Authorization: `Bearer ${user.access}` }
             });
             if (res.ok) {
@@ -55,7 +55,7 @@ export default function AnalyticsPage() {
             }
 
             // Top Products
-            const resTop = await fetch('http://127.0.0.1:8000/analytics/top-products-vendor/', {
+            const resTop = await fetch('https://kachy-production.up.railway.app/analytics/top-products-vendor/', {
                 headers: { Authorization: `Bearer ${user.access}` }
             });
             if (resTop.ok) {

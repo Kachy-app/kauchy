@@ -17,6 +17,7 @@ import dotenv
 dotenv.load_dotenv()
 from dotenv import load_dotenv
 load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -97,7 +98,7 @@ TEMPLATES = [
 CORS_ALLOW_ALL_ORIGINS = True
 # Also whitelist the production frontend domain explicitly (harmless when ALLOW_ALL is True)
 CORS_ALLOWED_ORIGINS = [
-    "https://upstartpy.vercel.app",
+    "https://kauchy.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:8000",
     
@@ -113,8 +114,8 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get("REDIS_URL","redis://127.0.0.1:6379")],
-            # "hosts": [('localhost', '6379')]
+            # "hosts": [os.environ.get("REDIS_URL","redis://127.0.0.1:6379")],
+            "hosts": [('localhost', '6379')]
         },
         "CONN_MAX_AGE": 60,
     },

@@ -559,16 +559,35 @@ class IncrementContentView(APIView):
 
     @extend_schema(
         summary="Increment Content Views",
-        description="Increment the view count for a specific piece of vendor content.",
+        description="Increment the view count for a specific piece of vendor content uniquely.",
         responses={200: dict},
     )
     def post(self, request, content_id):
+        from django.db.models import F
+        from usersearch.models import ContentView
         try:
             content = VendorContents.objects.get(id=content_id)
-            content.views_count += 1
-            content.save(update_fields=['views_count'])
+            auth_user = request.user
+            
+            incremented = False
+            if auth_user.is_authenticated:
+                if auth_user != content.user:
+                    _, created = ContentView.objects.get_or_create(user=auth_user, content=content)
+                    if created:
+                        VendorContents.objects.filter(id=content_id).update(views_count=F('views_count') + 1)
+                        content.refresh_from_db()
+                        incremented = True
+            else:
+                # For anonymous users, we can increment views
+                VendorContents.objects.filter(id=content_id).update(views_count=F('views_count') + 1)
+                content.refresh_from_db()
+                incremented = True
+
             return Response(
-                {"message": "View count updated successfully", "views": content.views_count},
+                {
+                    "message": "View count updated successfully" if incremented else "View count already registered",
+                    "views": content.views_count
+                },
                 status=status.HTTP_200_OK
             )
         except VendorContents.DoesNotExist:

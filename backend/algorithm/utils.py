@@ -4,12 +4,13 @@ import random
 
 
 def personalized_feed(user):
-    products = Product.objects.all()
+    products = Product.objects.select_related('vendor_id').all()
+    user_categories = {uc.category: uc for uc in UserCategoryModel.objects.filter(user=user)}
 
     scored_products = []
 
     for product in products:
-        user_view = UserCategoryModel.objects.filter(user=user, category=product.category).first()
+        user_view = user_categories.get(product.category)
         if user_view:
             category_boost = 1 + (user_view.view_count * 0.1)
         else:

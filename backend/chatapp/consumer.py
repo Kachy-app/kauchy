@@ -37,12 +37,15 @@ class UnifiedChatConsumer(AsyncWebsocketConsumer):
 
 
     async def disconnect(self, code):
-        for room_name in self.subscribed_rooms:
-            await self.channel_layer.group_discard(
-                room_name,
-                self.channel_name
-            )
-        await change_online_status(self.user, False)
+        if hasattr(self, 'subscribed_rooms'):
+            for room_name in self.subscribed_rooms:
+                await self.channel_layer.group_discard(
+                    room_name,
+                    self.channel_name
+                )
+        
+        if hasattr(self, 'user') and self.user.is_authenticated:
+            await change_online_status(self.user, False)
 
 
     async def receive(self, text_data):
@@ -101,7 +104,8 @@ class UnifiedChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type':'new_message',
             'conversation_id': event['conversation_id'],
-            'message': event['message'],
+            'message': event.get('message', ''),
+            'file': event.get('file_url'),
             'sender': event['sender'],
             'timestamp': event['timestamp']
         }, default=str))

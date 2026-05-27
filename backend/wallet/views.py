@@ -179,6 +179,7 @@ class GetWalletBalanceView(APIView):
             else:
                 data = BuyerWallet.objects.get(user=request.user)
                 serializer = BuyerWalletSerializer(data)
+            print(serializer.data)
             return Response(serializer.data)
         except (VendorWallet.DoesNotExist, BuyerWallet.DoesNotExist):
             return Response({"error": "Wallet not found"}, status=status.HTTP_404_NOT_FOUND)

@@ -78,7 +78,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
     async function incrementView() {
         if (!contentId) return;
         try {
-            const res = await fetch(`http://127.0.0.1:8000/customers/content/${contentId}/view/`, {
+            const res = await fetch(`https://kachy-production.up.railway.app/customers/content/${contentId}/view/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
         if (!contentId) return;
         setLoadingComments(true);
         try {
-            const res = await fetch(`http://127.0.0.1:8000/customers/content/${contentId}/reviews/`);
+            const res = await fetch(`https://kachy-production.up.railway.app/customers/content/${contentId}/reviews/`);
             if (res.ok) {
                 const data = await res.json();
                 setComments(data.reviews || []);
@@ -122,7 +122,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
 
         try {
             const method = liked ? 'DELETE' : 'POST';
-            const res = await fetch(`http://127.0.0.1:8000/customers/content/${contentId}/like/`, {
+            const res = await fetch(`https://kachy-production.up.railway.app/customers/content/${contentId}/like/`, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
         setSubmittingComment(true);
 
         try {
-            const res = await fetch(`http://127.0.0.1:8000/customers/content/${contentId}/review/`, {
+            const res = await fetch(`https://kachy-production.up.railway.app/customers/content/${contentId}/review/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -205,11 +205,10 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
         <div className="mt-auto flex flex-col gap-3 flex-shrink-0 pt-3 border-t border-gray-100">
             <div className="flex gap-4">
                 <button
-                    className={`flex items-center gap-2 px-4 py-2 border rounded-full cursor-pointer text-sm transition-all justify-center ${
-                        liked
+                    className={`flex items-center gap-2 px-4 py-2 border rounded-full cursor-pointer text-sm transition-all justify-center ${liked
                             ? 'bg-red-50 border-red-300 text-red-500'
                             : 'border-[#eee] bg-white text-[#444] hover:bg-gray-50 hover:border-red-200 hover:text-red-500'
-                    } ${likeLoading ? 'opacity-50 pointer-events-none' : ''}`}
+                        } ${likeLoading ? 'opacity-50 pointer-events-none' : ''}`}
                     onClick={handleLikeToggle}
                 >
                     <Heart size={20} fill={liked ? 'currentColor' : 'none'} className={`transition-transform duration-300 ${liked ? 'scale-110' : ''}`} />
@@ -222,15 +221,15 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
             </div>
             {user ? (
                 <form className="flex gap-2" onSubmit={handleSubmitComment}>
-                    <input 
-                        type="text" 
-                        placeholder="Add a comment..." 
+                    <input
+                        type="text"
+                        placeholder="Add a comment..."
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
-                        className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors bg-gray-50 focus:bg-white" 
+                        className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors bg-gray-50 focus:bg-white"
                     />
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         disabled={submittingComment || commentText.trim().length < 3}
                         className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                     >
@@ -248,7 +247,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
                 </p>
             )}
         </div>
-        
+
     );
 
 
@@ -328,7 +327,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
 
                     {/* Action Buttons & Input */}
                     {currentPath !== "/inventory" && commentForm}
-                    
+
                 </div>
             </div>
         </div>
