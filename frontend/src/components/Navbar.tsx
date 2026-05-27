@@ -162,11 +162,6 @@ export default function Navbar() {
     return (
         <nav className="fixed top-0 left-0 right-0 bg-[#f4f6fa] backdrop-blur-md border-b border-gray-200 z-[100] py-[12px] px-[20px] shadow-legacy-nav h-[70px]">
             <div className={`${isFullWidthPage ? '' : 'max-w-[1400px]'} mx-auto flex items-center justify-between gap-5 h-full`}>
-                {/* Mobile Menu Button - Left */}
-                <button className="md:hidden p-2 -mr-3 text-gray-900 hover:text-blue-600" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                    {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                </button>
-
                 {/* Left Section: Logo */}
                 <div className="shrink-0 flex items-center">
                     <Link href="/" className="flex items-center gap-2 no-underline font-bold text-blue-600 text-lg w-[144px] h-[48px] overflow-hidden" title="Home">
@@ -199,7 +194,7 @@ export default function Navbar() {
 
                     {/* Mobile Search Toggle */}
                     {showSearchBar && (
-                        <button className="md:hidden p-2 text-gray-600" title="Search">
+                        <button className="hidden p-2 text-gray-600" title="Search">
                             🔍
                         </button>
                     )}
@@ -283,11 +278,16 @@ export default function Navbar() {
                             </div>
                         </>
                     ) : (
-                        <div className="flex items-center gap-3 ml-2">
+                        <div className="hidden md:flex items-center gap-3 ml-2">
                             <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-blue-600 px-3 py-2">Login</Link>
                             <Link href="/signup" className="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all">Sign Up</Link>
                         </div>
                     )}
+
+                    {/* Mobile Menu Button - Right */}
+                    <button className="md:hidden p-2 text-gray-900 hover:text-blue-600 ml-1" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
                 </div>
             </div>
 
