@@ -9,6 +9,7 @@ interface Message {
     sender: number;
     conversation_id: number;
     is_read?: boolean;
+    file?: string | null;
 }
 
 interface Conversation {
@@ -19,6 +20,7 @@ interface Conversation {
         timestamp: string;
         sender: number;
         is_read: boolean;
+        file?: string | null;
     };
     other_user: {
         id: number;
