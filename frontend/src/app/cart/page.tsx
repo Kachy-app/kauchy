@@ -68,7 +68,7 @@ export default function CartPage(): JSX.Element {
 
     const fetchCart = async () => {
         try {
-            const res = await fetch('https://kachy-production.up.railway.app/cart/cart-items/', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/cart-items/`, {
                 headers: {
                     Authorization: `Bearer ${user?.access}`,
                     "Content-Type": "application/json"
@@ -101,7 +101,7 @@ export default function CartPage(): JSX.Element {
         setCartItems(prev => prev.filter(item => item.id !== cartItemId));
 
         try {
-            const res = await fetch(`https://kachy-production.up.railway.app/cart/cart-items/${cartItemId}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/cart-items/${cartItemId}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${user?.access}` }
             });
@@ -134,7 +134,7 @@ export default function CartPage(): JSX.Element {
         setCartItems(prev => prev.map(i => i.id === cartItemId ? { ...i, quantity: newQty } : i));
 
         try {
-            const res = await fetch(`https://kachy-production.up.railway.app/cart/cart-items/${cartItemId}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/cart-items/${cartItemId}`, {
                 method: 'PATCH',
                 headers: {
                     Authorization: `Bearer ${user?.access}`,
@@ -177,7 +177,7 @@ export default function CartPage(): JSX.Element {
         try {
             const cartIds = cartItems.map(item => item.id);
 
-            const res = await fetch('https://kachy-production.up.railway.app/payment/create-order/', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/create-order/`, {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json",
@@ -223,7 +223,7 @@ export default function CartPage(): JSX.Element {
 
     const handleProductClick = async (productId: number) => {
         try {
-            const res = await fetch(`https://kachy-production.up.railway.app/products/${productId}`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${productId}`);
             if (res.ok) {
                 const data = await res.json();
                 setSelectedProduct(data);

@@ -41,7 +41,7 @@ export default function Navbar() {
 
         const fetchWallet = async () => {
             try {
-                const response = await fetch('https://kachy-production.up.railway.app/wallet/getbalance/', {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/wallet/getbalance/`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -61,7 +61,7 @@ export default function Navbar() {
 
         const fetchCart = async () => {
             try {
-                const response = await fetch('https://kachy-production.up.railway.app/cart/cart-items/', {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/cart-items/`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -85,7 +85,7 @@ export default function Navbar() {
     useEffect(() => {
         if (!user?.access) return;
 
-        const wsHost = window.location.hostname === 'localhost' ? 'ws://localhost:8000' : 'wss://kachy-production.up.railway.app';
+        const wsHost = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
         const ws = new WebSocket(`${wsHost}/ws/notifications/?token=${user.access}`);
         wsRef.current = ws;
 

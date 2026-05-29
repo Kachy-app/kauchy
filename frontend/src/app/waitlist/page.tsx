@@ -17,7 +17,7 @@ export default function WaitlistPage() {
     setErrorMessage('Please enter a valid email or try again later.');
     
     try {
-      const res = await fetch('https://kachy-production.up.railway.app/waitlist/', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/waitlist/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

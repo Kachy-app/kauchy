@@ -54,7 +54,7 @@ export default function SignupPage() {
         };
 
         try {
-            const response = await fetch('https://kachy-production.up.railway.app/auth/users/', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/users/`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)

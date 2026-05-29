@@ -45,7 +45,7 @@ export default function AnalyticsPage() {
 
     const loadAnalytics = async () => {
         try {
-            const res = await fetch('https://kachy-production.up.railway.app/analytics/overview/', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/overview/`, {
                 headers: { Authorization: `Bearer ${user.access}` }
             });
             if (res.ok) {
@@ -55,7 +55,7 @@ export default function AnalyticsPage() {
             }
 
             // Top Products
-            const resTop = await fetch('https://kachy-production.up.railway.app/analytics/top-products-vendor/', {
+            const resTop = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/top-products-vendor/`, {
                 headers: { Authorization: `Bearer ${user.access}` }
             });
             if (resTop.ok) {

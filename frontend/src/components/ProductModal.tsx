@@ -117,7 +117,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
             if (user && user.access) {
                 headers['Authorization'] = `Bearer ${user.access}`;
             }
-            const res = await fetch(`https://kachy-production.up.railway.app/products/${productId}/reviews/`, { headers });
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${productId}/reviews/`, { headers });
             if (res.ok) {
                 const data = await res.json();
                 setReviews(data.reviews || []);
@@ -140,7 +140,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
         setLikeLoading(true);
 
         try {
-            const res = await fetch(`https://kachy-production.up.railway.app/products/${productId}/like/`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${productId}/like/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -179,7 +179,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
         setSubmittingReview(true);
 
         try {
-            const res = await fetch(`https://kachy-production.up.railway.app/products/${productId}/reviews/`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${productId}/reviews/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

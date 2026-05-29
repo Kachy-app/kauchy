@@ -39,7 +39,7 @@ export default function OrdersPage() {
         if (!user?.access) return;
         setLoading(true);
         try {
-            const response = await fetch('https://kachy-production.up.railway.app/orders/my_orders/', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/my_orders/`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -73,7 +73,7 @@ export default function OrdersPage() {
     const handleVendorResponse = async (orderId: string, action: 'accept' | 'reject') => {
         if (!user?.access) return;
         try {
-            const response = await fetch('https://kachy-production.up.railway.app/orders/respond/', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/respond/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -140,7 +140,7 @@ export default function OrdersPage() {
                  return;
             }
 
-            const response = await fetch('https://kachy-production.up.railway.app/orders/validate_order_qr/', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/validate_order_qr/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

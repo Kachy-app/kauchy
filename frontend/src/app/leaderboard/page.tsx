@@ -18,9 +18,9 @@ export default function LeaderboardPage() {
         async function fetchData() {
             try {
                 const [vRes, cRes, pRes] = await Promise.all([
-                    fetch('https://kachy-production.up.railway.app/customers/top-vendors/').then(r => r.ok ? r.json() : []),
-                    fetch('https://kachy-production.up.railway.app/customers/top-customers/').then(r => r.ok ? r.json() : []),
-                    fetch('https://kachy-production.up.railway.app/analytics/top-products/').then(r => r.ok ? r.json() : [])
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/top-vendors/`).then(r => r.ok ? r.json() : []),
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/top-customers/`).then(r => r.ok ? r.json() : []),
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/top-products/`).then(r => r.ok ? r.json() : [])
                 ]);
                 setVendors(Array.isArray(vRes) ? vRes : []);
                 setCustomers(Array.isArray(cRes) ? cRes : []);

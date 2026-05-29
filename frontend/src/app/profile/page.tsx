@@ -27,7 +27,7 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
         try {
-            const res = await fetch('https://kachy-production.up.railway.app/auth/users/me/', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/users/me/`, {
                 headers: { Authorization: `Bearer ${user.access}` }
             });
             if (res.ok) {
@@ -73,7 +73,7 @@ export default function ProfilePage() {
     const handleSave = async () => {
         setLoading(true);
         try {
-            const res = await fetch('https://kachy-production.up.railway.app/auth/users/me/', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/users/me/`, {
                 method: 'PATCH',
                 headers: {
                     "Content-Type": "application/json",
@@ -121,7 +121,7 @@ export default function ProfilePage() {
         setLoading(true);
 
         try {
-            const res = await fetch('https://kachy-production.up.railway.app/auth/users/me/', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/users/me/`, {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${user.access}` },
                 body: formData

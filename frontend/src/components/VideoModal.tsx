@@ -78,7 +78,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
     async function incrementView() {
         if (!contentId) return;
         try {
-            const res = await fetch(`https://kachy-production.up.railway.app/customers/content/${contentId}/view/`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/content/${contentId}/view/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
         if (!contentId) return;
         setLoadingComments(true);
         try {
-            const res = await fetch(`https://kachy-production.up.railway.app/customers/content/${contentId}/reviews/`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/content/${contentId}/reviews/`);
             if (res.ok) {
                 const data = await res.json();
                 setComments(data.reviews || []);
@@ -122,7 +122,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
 
         try {
             const method = liked ? 'DELETE' : 'POST';
-            const res = await fetch(`https://kachy-production.up.railway.app/customers/content/${contentId}/like/`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/content/${contentId}/like/`, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
         setSubmittingComment(true);
 
         try {
-            const res = await fetch(`https://kachy-production.up.railway.app/customers/content/${contentId}/review/`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/content/${contentId}/review/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

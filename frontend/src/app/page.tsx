@@ -42,7 +42,7 @@ export default function Home(): JSX.Element {
         headers["Authorization"] = `Bearer ${user.access}`;
       }
 
-      const res = await fetch(`https://kachy-production.up.railway.app/products/`, { headers });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/`, { headers });
       if (res.ok) {
         const data = await res.json();
         setProducts(data);
@@ -73,7 +73,7 @@ export default function Home(): JSX.Element {
       const headers: any = { "Content-Type": "application/json" };
       if (user) headers["Authorization"] = `Bearer ${user.access}`;
 
-      const res = await fetch(`https://kachy-production.up.railway.app/products/${product.id}`, { headers });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${product.id}`, { headers });
       if (res.ok) {
         const details = await res.json();
         setSelectedProduct(details);

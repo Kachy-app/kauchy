@@ -91,7 +91,7 @@ export default function WalletPage() {
         }
 
         try {
-            const response = await fetch('https://kachy-production.up.railway.app/wallet/getbalance/', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/wallet/getbalance/`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -115,7 +115,7 @@ export default function WalletPage() {
             }
 
             // Load real transactions from API
-            const historyResponse = await fetch('https://kachy-production.up.railway.app/wallet/history/', {
+            const historyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/wallet/history/`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -148,7 +148,7 @@ export default function WalletPage() {
         setPaymentState('loading');
 
         try {
-            const response = await fetch(`https://kachy-production.up.railway.app/wallet/verify-topup/${reference}`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/wallet/verify-topup/${reference}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -215,7 +215,7 @@ export default function WalletPage() {
         setPaymentState('loading');
 
         try {
-            const response = await fetch('https://kachy-production.up.railway.app/wallet/topup', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/wallet/topup`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

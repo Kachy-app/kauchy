@@ -61,7 +61,7 @@ const ProductLinkPreview = ({ url }: { url: string }) => {
         }
 
         let cancelled = false;
-        fetch(`https://kachy-production.up.railway.app/products/${productId}`)
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${productId}`)
             .then(res => {
                 if (!res.ok) throw new Error('Not found');
                 return res.json();
@@ -204,7 +204,7 @@ export default function ChatPage() {
 
             if (vendorIdParamRef.current) {
                 try {
-                    await fetch(`https://kachy-production.up.railway.app/api/chat/create/${vendorIdParamRef.current}`, {
+                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/create/${vendorIdParamRef.current}`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${user.access}`,
@@ -218,7 +218,8 @@ export default function ChatPage() {
 
             if (cancelled) return;
 
-            const wsHost = window.location.hostname === 'localhost' ? 'ws://localhost:8000' : 'wss://kachy-production.up.railway.app';
+            const wsHost = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
+            console.log("TOKEN:", user.access); // 👈 add this line
             ws = new WebSocket(`${wsHost}/ws/chat/?token=${user.access}`);
 
             ws.onopen = () => {
@@ -419,7 +420,7 @@ export default function ChatPage() {
         formData.append("file", file);
 
         try {
-            const res = await fetch("https://kachy-production.up.railway.app/api/chat/upload/", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/upload/`, {
                 method: "POST",
                 headers: {
                     'Authorization': `Bearer ${user.access}`

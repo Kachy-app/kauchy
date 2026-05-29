@@ -20,7 +20,7 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const response = await fetch('https://kachy-production.up.railway.app/auth/jwt/create/', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/jwt/create/`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password })
