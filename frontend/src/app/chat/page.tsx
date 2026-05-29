@@ -185,7 +185,10 @@ export default function ChatPage() {
 
     // Connect to WebSocket
     useEffect(() => {
-        if (!user) return;
+        if (!user?.access) return;
+
+        let ws: WebSocket | null = null;
+        let cancelled = false;
 
         const initializeChat = async () => {
             if (typeof window !== 'undefined') {
@@ -213,36 +216,41 @@ export default function ChatPage() {
                 }
             }
 
+            if (cancelled) return;
+
             const wsHost = window.location.hostname === 'localhost' ? 'ws://localhost:8000' : 'wss://kachy-production.up.railway.app';
-            const ws = new WebSocket(`${wsHost}/ws/chat/?token=${user.access}`);
+            ws = new WebSocket(`${wsHost}/ws/chat/?token=${user.access}`);
 
             ws.onopen = () => {
                 console.log("WS Connected");
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             };
 
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                handleWebSocketMessage(data, ws);
-            } catch (e) {
-                console.error("WS Message Error", e);
-            }
-        };
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (!cancelled) handleWebSocketMessage(data, ws!);
+                } catch (e) {
+                    console.error("WS Message Error", e);
+                }
+            };
 
             ws.onclose = () => {
                 console.log("WS Closed");
             };
 
-            setSocket(ws);
-
-            return () => {
-                ws.close();
-            };
+            if (!cancelled) setSocket(ws);
         };
 
         initializeChat();
-    }, [user]);
+
+        return () => {
+            cancelled = true;
+            if (ws) {
+                ws.close();
+            }
+        };
+    }, [user?.access]);
 
     // Handle incoming messages
     const handleWebSocketMessage = (data: any, ws: WebSocket) => {

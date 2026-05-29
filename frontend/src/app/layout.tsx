@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const poppins = Poppins({ weight: ['400', '500', '600', '700'], subsets: ['latin'], variable: '--font-poppins' });
 
 export const metadata = {
-  title: "Upstart - Student Marketplace",
+  title: "Kauchy - Student Marketplace",
   description: "Buy and sell products on campus",
 };
 

@@ -83,7 +83,7 @@ export default function Navbar() {
 
     // WebSocket connection for real-time notifications
     useEffect(() => {
-        if (!user || !user.access) return;
+        if (!user?.access) return;
 
         const wsHost = window.location.hostname === 'localhost' ? 'ws://localhost:8000' : 'wss://kachy-production.up.railway.app';
         const ws = new WebSocket(`${wsHost}/ws/notifications/?token=${user.access}`);
@@ -124,7 +124,7 @@ export default function Navbar() {
             ws.close();
             wsRef.current = null;
         };
-    }, [user]);
+    }, [user?.access]);
 
     const handleNotificationClick = (notifId: number) => {
         // Mark as read via WebSocket
