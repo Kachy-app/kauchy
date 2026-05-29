@@ -85,7 +85,7 @@ export default function Navbar() {
     useEffect(() => {
         if (!user || !user.access) return;
 
-        const wsHost = window.location.hostname === 'localhost' ? 'wss://kachy-production.up.railway.app' : `wss://${window.location.hostname}`;
+        const wsHost = window.location.hostname === 'localhost' ? 'ws://localhost:8000' : 'wss://kachy-production.up.railway.app';
         const ws = new WebSocket(`${wsHost}/ws/notifications/?token=${user.access}`);
         wsRef.current = ws;
 

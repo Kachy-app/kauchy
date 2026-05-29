@@ -213,7 +213,8 @@ export default function ChatPage() {
                 }
             }
 
-            const ws = new WebSocket(`wss://kachy-production.up.railway.app/ws/chat?token=${user.access}`);
+            const wsHost = window.location.hostname === 'localhost' ? 'ws://localhost:8000' : 'wss://kachy-production.up.railway.app';
+            const ws = new WebSocket(`${wsHost}/ws/chat/?token=${user.access}`);
 
             ws.onopen = () => {
                 console.log("WS Connected");
