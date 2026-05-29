@@ -1,6 +1,6 @@
-# Campus Marketplace
+# Kauchy
 
-Campus Marketplace is a full-stack marketplace application with:
+Kauchy is a full-stack marketplace application with:
 
 - **Backend:** Django + Django REST Framework + Channels (WebSocket support)
 - **Frontend:** Next.js (React)
