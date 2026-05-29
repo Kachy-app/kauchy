@@ -24,9 +24,11 @@ django_asgi_app = get_asgi_application()
 import notification.routing
 import chatapp.routing
 
+from channels.db import database_sync_to_async
+
 User = get_user_model()
 
-@sync_to_async
+@database_sync_to_async
 def get_user_from_token(token_key):
     """Get user from JWT token"""
     try:
