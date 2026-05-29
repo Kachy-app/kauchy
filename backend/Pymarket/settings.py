@@ -104,7 +104,9 @@ CORS_ALLOWED_ORIGINS = [
     
 ]
 
-REDIS_URL = os.environ.get('REDIS_URL')
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379')
+if REDIS_URL and not REDIS_URL.startswith(('redis://', 'rediss://')):
+    REDIS_URL = f"redis://{REDIS_URL}"
 
 
 WSGI_APPLICATION = 'Pymarket.wsgi.application'
@@ -114,8 +116,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get("REDIS_URL","redis://127.0.0.1:6379")],
-            # "hosts": [('localhost', '6379')]
+            "hosts": [REDIS_URL],
         },
         "CONN_MAX_AGE": 60,
     },
