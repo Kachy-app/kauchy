@@ -54,7 +54,13 @@ const ProductLinkPreview = ({ url }: { url: string }) => {
 
     let productId: string | null = null;
     try {
-        productId = new URL(url).searchParams.get("productId");
+        const parsedUrl = new URL(url);
+        // Support old format: ?productId=X
+        productId = parsedUrl.searchParams.get("productId");
+        // Support new feed format: /feed?type=product&id=X
+        if (!productId && parsedUrl.pathname.includes('/feed') && parsedUrl.searchParams.get("type") === 'product') {
+            productId = parsedUrl.searchParams.get("id");
+        }
     } catch {
         // Malformed URL
     }
@@ -159,7 +165,9 @@ const MessageContent = ({ text, file, onImageClick }: { text?: string | null; fi
                 <div className="text-[15px] sm:text-[14px]">
                     {text.split(urlSplitRegex).map((part, i) => {
                         if (urlTestRegex.test(part)) {
-                            if (part.includes("productId=")) {
+                            const isProductLink = part.includes("productId=") || 
+                                (part.includes("/feed") && part.includes("type=product") && part.includes("id="));
+                            if (isProductLink) {
                                 return <ProductLinkPreview key={i} url={part} />;
                             } else {
                                 return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline font-medium hover:opacity-80 break-all transition-opacity">{part}</a>;
