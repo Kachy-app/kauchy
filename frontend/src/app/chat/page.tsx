@@ -467,7 +467,7 @@ export default function ChatPage() {
     const activeConv = conversations.find(c => c.id === activeConversationId);
 
     return (
-        <div className="flex h-[calc(100vh-70px)] overflow-hidden relative md:grid md:grid-cols-[300px_1fr] bg-gradient-to-br from-blue-50/50 via-white to-amber-50/50" ref={chatContainerRef}>
+        <div className="flex h-[calc(100vh-70px)] overflow-hidden relative md:grid md:grid-cols-[300px_1fr] bg-white" ref={chatContainerRef}>
             {loading && <LoadingModal />}
             
             {/* Mobile Overlay */}
@@ -477,7 +477,7 @@ export default function ChatPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 top-[70px] bg-black/40 backdrop-blur-sm z-40 md:hidden"
+                        className="fixed inset-0 top-[70px] bg-black/40 z-40 md:hidden"
                         onClick={() => setIsSidebarOpen(false)}
                     />
                 )}
@@ -485,10 +485,10 @@ export default function ChatPage() {
 
             {/* Sidebar */}
             <div 
-                className={`fixed inset-y-0 left-0 top-[70px] bottom-0 w-[85vw] max-w-[300px] bg-white/70 backdrop-blur-xl border-r border-white/50 z-50 transition-transform duration-300 md:relative md:w-full md:inset-auto md:transform-none md:z-0 md:flex md:flex-col md:h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+                className={`fixed inset-y-0 left-0 top-[70px] bottom-0 w-[85vw] max-w-[300px] bg-white border-r border-[#e5e7eb] z-50 transition-transform duration-300 md:relative md:w-full md:inset-auto md:transform-none md:z-0 md:flex md:flex-col md:h-full ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
                 ref={sidebarRef}
             >
-                <div className="p-4 border-b border-white/50 bg-white/40 backdrop-blur-md shrink-0 sticky top-0 z-50 md:static">
+                <div className="p-4 border-b border-[#e5e7eb] bg-white shrink-0 sticky top-0 z-50 md:static">
                     <h2 className="text-lg font-semibold text-[#1d1d1d]">Messages</h2>
                 </div>
                 <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar" id="conversationsList">
@@ -508,7 +508,7 @@ export default function ChatPage() {
                         return (
                             <div
                                 key={conv.id}
-                                className={`relative flex items-center gap-3 p-3 cursor-pointer border-b border-white/30 transition-all duration-200 hover:bg-white/60 ${activeConversationId === conv.id ? 'bg-white/80 border-l-[3px] border-l-[#1c6ef2] shadow-sm' : ''}`}
+                                className={`relative flex items-center gap-3 p-3 cursor-pointer border-b border-[#e5e7eb] transition-colors duration-200 hover:bg-[#f4f6fa] ${activeConversationId === conv.id ? 'bg-[#f4f6fa] border-l-[3px] border-l-[#1c6ef2]' : ''}`}
                                 onClick={() => selectConversation(conv)}
                             >
                                 <div className="relative">
@@ -541,30 +541,28 @@ export default function ChatPage() {
             </div>
 
             {/* Main Chat */}
-            <div className="flex flex-col bg-transparent h-full overflow-hidden relative w-full">
+            <div className="flex flex-col bg-white h-full overflow-hidden relative w-full">
                 {!activeConversationId ? (
                     <div className="flex flex-col items-center justify-center h-full text-[#4b4b4b]" id="chatEmpty">
-                        <div className="flex items-center p-3 bg-[#ffb800]/90 backdrop-blur-md border-b border-white/20 min-h-[56px] absolute top-0 left-0 w-full z-10 md:hidden">
-                            <button className="flex items-center justify-center p-2 mr-2 text-xl cursor-pointer text-[#1d1d1d] hover:text-white transition-colors" id="sidebarToggleBtn" onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}>
+                        <div className="flex items-center p-3 bg-[#ffb800] border-b border-[#e5e7eb] min-h-[56px] absolute top-0 left-0 w-full z-10 md:hidden">
+                            <button className="flex items-center justify-center p-2 mr-2 text-xl cursor-pointer text-[#1d1d1d] hover:text-[#1c6ef2] transition-colors" id="sidebarToggleBtn" onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}>
                                 ☰
                             </button>
                         </div>
-                        <div className="w-24 h-24 mb-6 rounded-full bg-white/60 flex items-center justify-center backdrop-blur-xl shadow-lg border border-white/50">
-                            <span className="text-4xl drop-shadow-sm">💬</span>
-                        </div>
+                        <div className="text-6xl mb-4">💬</div>
                         <p className="text-lg font-medium">Select a conversation to start chatting</p>
                     </div>
                 ) : (
-                    <div className="flex flex-col h-full overflow-hidden relative z-10" id="chatView">
+                    <div className="flex flex-col h-full overflow-hidden" id="chatView">
                         {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-white/20 bg-[#ffb800]/95 backdrop-blur-xl shrink-0 min-h-[64px] md:justify-between sm:p-3 shadow-sm z-20">
+                        <div className="flex items-center justify-between p-4 border-b border-[#e5e7eb] bg-[#ffb800] shrink-0 min-h-[56px] md:justify-between sm:p-3">
                             <div className="flex items-center flex-1 min-w-0">
-                                <button className="flex md:hidden items-center justify-center p-2 mr-2 text-xl cursor-pointer text-[#1d1d1d] hover:text-white transition-colors shrink-0" id="sidebarToggleBtnDetail" onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}>
+                                <button className="flex md:hidden items-center justify-center p-2 mr-2 text-xl cursor-pointer text-[#1d1d1d] hover:text-[#1c6ef2] transition-colors shrink-0" id="sidebarToggleBtnDetail" onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}>
                                     ☰
                                 </button>
-                                <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 hover:opacity-90 transition-opacity bg-white/10 px-2 py-1.5 -ml-2 rounded-xl" onClick={() => router.push(`/vendor-profile?vendorId=${activeConv?.other_user.id}`)}>
+                                <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 hover:opacity-90 transition-opacity" onClick={() => router.push(`/vendor-profile?vendorId=${activeConv?.other_user.id}`)}>
                                     <div className="relative">
-                                        <img src={activeConv?.other_user.profile_picture || '/placeholder.svg'} alt="User" className="w-10 h-10 rounded-full object-cover shrink-0 sm:w-9 sm:h-9 shadow-sm" />
+                                        <img src={activeConv?.other_user.profile_picture || '/placeholder.svg'} alt="User" className="w-10 h-10 rounded-full object-cover shrink-0 sm:w-9 sm:h-9" />
                                         {activeConv?.other_user.status && (
                                             <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-[#ffb800] rounded-full" />
                                         )}
@@ -631,16 +629,16 @@ export default function ChatPage() {
                                                         setReplyingTo(msg);
                                                     }
                                                 }}
-                                                className={`p-3 px-3.5 rounded-xl text-sm leading-relaxed relative overflow-hidden shadow-sm backdrop-blur-md border ${
+                                                className={`p-3 px-3.5 rounded-xl text-sm leading-relaxed relative overflow-hidden shadow-sm ${
                                                     isSent 
-                                                        ? "bg-[#1c6ef2]/90 border-blue-400/30 text-white shadow-blue-500/10" 
-                                                        : "bg-[#ffb800]/90 border-amber-300/30 text-gray-900 shadow-amber-500/10"
+                                                        ? "bg-[#1c6ef2] text-white" 
+                                                        : "bg-[#ffb800] text-gray-900"
                                                 }`}
                                             >
                                                 {msg.reply_to_details && (
                                                     <div 
-                                                        className={`mb-2 p-2 rounded-lg text-xs border-l-4 cursor-pointer hover:brightness-95 transition-all backdrop-blur-md ${
-                                                            isSent ? "bg-black/10 border-white/50 text-white" : "bg-white/30 border-white text-gray-900 shadow-[inset_0_1px_4px_rgba(255,255,255,0.4)]"
+                                                        className={`mb-2 p-2 rounded-lg text-xs border-l-4 cursor-pointer hover:brightness-95 transition-all ${
+                                                            isSent ? "bg-black/10 border-white/50 text-white" : "bg-white/30 border-white text-gray-900"
                                                         }`}
                                                     >
                                                         <div className="font-bold mb-0.5 text-[10px] uppercase tracking-wider text-inherit opacity-80">
@@ -681,7 +679,7 @@ export default function ChatPage() {
                         </div>
 
                         {/* Input Area */}
-                        <div className="flex flex-col bg-white/70 backdrop-blur-xl border-t border-white/60 relative z-20 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
+                        <div className="flex flex-col bg-white border-t border-[#e5e7eb] relative z-20">
                             
                             {/* Replying To Indicator */}
                             <AnimatePresence>
@@ -690,7 +688,7 @@ export default function ChatPage() {
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: 'auto', opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        className="bg-white/50 backdrop-blur-md border-b border-white/40 px-4 py-2 flex items-start justify-between"
+                                        className="bg-[#f4f6fa] border-b border-[#e5e7eb] px-4 py-2 flex items-start justify-between"
                                     >
                                         <div className="flex-1 min-w-0 pr-4">
                                             <div className="text-xs font-bold text-[#1c6ef2] mb-0.5 flex items-center gap-1.5">
@@ -714,7 +712,7 @@ export default function ChatPage() {
                             <div className="flex gap-2 p-4 sm:p-2.5 sm:gap-1.5 items-end">
                                 <input type="file" ref={fileInputRef} hidden onChange={handleFileUpload} accept="video/*,image/*" />
                                 <button 
-                                    className={`bg-white/60 backdrop-blur-sm text-[#1c6ef2] w-[44px] h-[44px] rounded-xl flex items-center justify-center text-xl transition-all duration-200 border border-white/60 shadow-sm sm:w-10 sm:h-10 shrink-0 ${isUploading ? 'opacity-50 cursor-not-allowed animate-pulse' : 'hover:bg-white/80 cursor-pointer hover:shadow-md'}`}
+                                    className={`bg-[#f4f6fa] text-[#4b4b4b] w-[44px] h-[44px] rounded-xl flex items-center justify-center text-xl transition-colors duration-200 border-none sm:w-10 sm:h-10 shrink-0 ${isUploading ? 'opacity-50 cursor-not-allowed animate-pulse' : 'hover:bg-[#e5e7eb] cursor-pointer'}`}
                                     onClick={() => !isUploading && fileInputRef.current?.click()}
                                     title="Send Attachment"
                                     disabled={isUploading}
@@ -737,7 +735,7 @@ export default function ChatPage() {
                                     }}
                                     rows={1}
                                     placeholder="Type a message..."
-                                    className="flex-1 bg-white/60 backdrop-blur-sm border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.01)] rounded-xl py-[10px] px-3.5 text-sm text-[#1d1d1d] placeholder-gray-500/80 focus:outline-none focus:border-[#1c6ef2]/50 focus:bg-white/80 sm:text-[13px] sm:py-2 resize-none overflow-y-auto max-h-[120px] transition-all custom-scrollbar font-medium"
+                                    className="flex-1 bg-white border border-[#e5e7eb] rounded-xl py-[10px] px-3.5 text-sm text-[#1d1d1d] placeholder-gray-500 focus:outline-none focus:border-[#1c6ef2] sm:text-[13px] sm:py-2 resize-none overflow-y-auto max-h-[120px] transition-all custom-scrollbar"
                                     style={{ minHeight: '44px' }}
                                 />
                                 <button 
