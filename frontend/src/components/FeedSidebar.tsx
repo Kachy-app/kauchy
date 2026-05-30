@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { Heart, MessageCircle, Send, X, Share2, ShoppingCart, Info, Store } from 'lucide-react';
@@ -47,6 +48,7 @@ function StarRating({ rating, onRate, interactive = false, size = 'text-base' }:
 export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: FeedSidebarProps) {
     const { showToast } = useToast();
     const { user } = useAuth();
+    const router = useRouter();
 
     // Generic states
     const [liked, setLiked] = useState(false);
@@ -330,21 +332,41 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: 
                 )}
 
                 {/* Vendor Card */}
-                <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <img src={item.pfp || item.vendor_pfp || '/placeholder.svg'} alt="Vendor" className="w-11 h-11 sm:w-10 sm:h-10 rounded-full object-cover bg-gray-100" />
-                        <div>
-                            <div className="text-base sm:text-sm font-bold text-gray-900">{item.vendor_username || 'Unknown Vendor'}</div>
-                            {type === 'product' && (
-                                <div className="flex items-center">
-                                    <span className="text-amber-400 text-sm sm:text-xs">★★★★★</span>
-                                </div>
-                            )}
+                <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <img src={item.pfp || item.vendor_pfp || '/placeholder.svg'} alt="Vendor" className="w-11 h-11 sm:w-10 sm:h-10 rounded-full object-cover bg-gray-100" />
+                            <div>
+                                <div className="text-base sm:text-sm font-bold text-gray-900">{item.vendor_username || 'Unknown Vendor'}</div>
+                                {type === 'product' && (
+                                    <div className="flex items-center">
+                                        <span className="text-amber-400 text-sm sm:text-xs">★★★★★</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => {
+                                    if (!user) { showToast('Please login to message vendor', 'error'); return; }
+                                    if (item.vendor_id) {
+                                        const productLink = `${window.location.origin}/feed?type=${type}&id=${itemId}`;
+                                        const msgText = type === 'product'
+                                            ? `Hi, I'm interested in "${item.product_name}" — ${productLink}`
+                                            : `Hi, I saw your content — ${productLink}`;
+                                        router.push(`/chat?vendorId=${item.vendor_id}&text=${encodeURIComponent(msgText)}`);
+                                    }
+                                }}
+                                className="p-2.5 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
+                                title="Contact Vendor"
+                            >
+                                <MessageCircle size={20} />
+                            </button>
+                            <a href={`/vendor-profile?vendorId=${item.vendor_id}`} className="p-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                                <Store size={20} />
+                            </a>
                         </div>
                     </div>
-                    <a href={`/vendor-profile?vendorId=${item.vendor_id}`} className="p-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                        <Store size={20} />
-                    </a>
                 </div>
 
                 {/* Reviews / Comments Section */}
@@ -452,6 +474,25 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: 
                     >
                         <ShoppingCart size={20} />
                         Add to Cart
+                    </button>
+                )}
+
+                {!isOwnProduct && (
+                    <button 
+                        className="w-full flex justify-center items-center gap-2 py-3.5 sm:py-3 bg-[#1c6ef2] hover:bg-[#1558c9] text-white rounded-lg font-bold text-base sm:text-sm shadow-sm transition-colors"
+                        onClick={() => {
+                            if (!user) { showToast('Please login to message vendor', 'error'); return; }
+                            if (item.vendor_id) {
+                                const productLink = `${window.location.origin}/feed?type=${type}&id=${itemId}`;
+                                const msgText = type === 'product'
+                                    ? `Hi, I'm interested in "${item.product_name}" — ${productLink}`
+                                    : `Hi, I saw your content — ${productLink}`;
+                                router.push(`/chat?vendorId=${item.vendor_id}&text=${encodeURIComponent(msgText)}`);
+                            }
+                        }}
+                    >
+                        <MessageCircle size={20} />
+                        Contact Vendor
                     </button>
                 )}
             </div>
