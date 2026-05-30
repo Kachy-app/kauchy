@@ -51,8 +51,32 @@ function FeedContent() {
                 fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/allcontents/`, { headers })
             ]);
 
-            let products = prodRes.ok ? await prodRes.json() : [];
-            let contents = contRes.ok ? await contRes.json() : [];
+            let products: any[] = [];
+            let contents: any[] = [];
+
+            try {
+                if (prodRes.ok) {
+                    const prodData = await prodRes.json();
+                    products = Array.isArray(prodData) ? prodData : [];
+                } else {
+                    console.warn('Products fetch failed:', prodRes.status, prodRes.statusText);
+                }
+            } catch (e) {
+                console.error('Failed to parse products response:', e);
+            }
+
+            try {
+                if (contRes.ok) {
+                    const contData = await contRes.json();
+                    contents = Array.isArray(contData) ? contData : [];
+                } else {
+                    console.warn('Contents fetch failed:', contRes.status, contRes.statusText);
+                }
+            } catch (e) {
+                console.error('Failed to parse contents response:', e);
+            }
+
+            console.log(`Feed loaded: ${products.length} products, ${contents.length} contents`);
 
             let initialItemObj = null;
 
@@ -247,6 +271,12 @@ function FeedContent() {
                 ))}
             </div>
 
+            {/* Sidebar Overlay */}
+            <div 
+                className={`fixed inset-0 bg-black/60 z-40 transition-opacity duration-300 ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setSidebarOpen(false)}
+            />
+
             {/* Sidebar */}
             {activeItem && (
                 <FeedSidebar 
@@ -278,24 +308,51 @@ export default function FeedPage() {
 function ProductFeedView({ product, isActive }: { product: any, isActive: boolean }) {
     const images = product.image_url && product.image_url.length > 0 ? product.image_url : ['/placeholder.svg'];
     const [activeImage, setActiveImage] = useState(0);
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const scrollLeft = e.currentTarget.scrollLeft;
+        const width = e.currentTarget.clientWidth;
+        const newIndex = Math.round(scrollLeft / width);
+        if (newIndex !== activeImage) {
+            setActiveImage(newIndex);
+        }
+    };
 
     const nextImage = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (activeImage < images.length - 1) setActiveImage(prev => prev + 1);
+        if (activeImage < images.length - 1 && scrollRef.current) {
+            const width = scrollRef.current.clientWidth;
+            scrollRef.current.scrollTo({ left: (activeImage + 1) * width, behavior: 'smooth' });
+        }
     };
 
     const prevImage = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (activeImage > 0) setActiveImage(prev => prev - 1);
+        if (activeImage > 0 && scrollRef.current) {
+            const width = scrollRef.current.clientWidth;
+            scrollRef.current.scrollTo({ left: (activeImage - 1) * width, behavior: 'smooth' });
+        }
     };
 
     return (
-        <div className="w-full h-full relative flex items-center justify-center">
-            <img 
-                src={images[activeImage]} 
-                alt={product.product_name} 
-                className="w-full h-full object-cover sm:object-contain bg-zinc-900 transition-opacity duration-300"
-            />
+        <div className="w-full h-full relative flex items-center justify-center bg-zinc-900 overflow-hidden">
+            <div 
+                ref={scrollRef}
+                className="w-full h-full flex overflow-x-auto snap-x snap-mandatory custom-scrollbar-hide"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                onScroll={handleScroll}
+            >
+                {images.map((img: any, idx: number) => (
+                    <div key={idx} className="min-w-full h-full snap-start snap-always flex items-center justify-center shrink-0">
+                        <img 
+                            src={img} 
+                            alt={`${product.product_name} - ${idx + 1}`} 
+                            className="w-full h-full object-cover sm:object-contain transition-opacity duration-300"
+                        />
+                    </div>
+                ))}
+            </div>
             
             {/* Image Navigation */}
             {images.length > 1 && (
@@ -303,7 +360,7 @@ function ProductFeedView({ product, isActive }: { product: any, isActive: boolea
                     {activeImage > 0 && (
                         <button 
                             onClick={prevImage}
-                            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 z-30"
+                            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 backdrop-blur-md rounded-full hidden sm:flex items-center justify-center text-white hover:bg-black/60 z-30"
                         >
                             <ChevronLeft size={24} />
                         </button>
@@ -311,7 +368,7 @@ function ProductFeedView({ product, isActive }: { product: any, isActive: boolea
                     {activeImage < images.length - 1 && (
                         <button 
                             onClick={nextImage}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 z-30"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 backdrop-blur-md rounded-full hidden sm:flex items-center justify-center text-white hover:bg-black/60 z-30"
                         >
                             <ChevronRight size={24} />
                         </button>
@@ -320,7 +377,7 @@ function ProductFeedView({ product, isActive }: { product: any, isActive: boolea
                     {/* Dots indicator */}
                     <div className="absolute bottom-28 left-1/2 -translate-x-1/2 flex gap-1.5 z-30">
                         {images.map((img: any, idx: number) => (
-                            <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all ${idx === activeImage ? 'bg-white w-4' : 'bg-white/50'}`} />
+                            <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all ${idx === activeImage ? 'bg-white w-4' : 'bg-white/50 shadow-sm'}`} />
                         ))}
                     </div>
                 </>
