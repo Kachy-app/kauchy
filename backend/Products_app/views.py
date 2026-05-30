@@ -8,6 +8,7 @@ from .serializers import ProductSerializer, ProductReviewSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from .supabase_config import supabase
+from notification.utils import send_notification_to_user
 import os
 import time
 import uuid
@@ -282,6 +283,14 @@ class ProductLikeToggleView(APIView):
 
         # Since it was created, save takes care of incrementing the product.likes_count
         product.refresh_from_db()
+        if request.user != product.vendor_id:
+            send_notification_to_user(
+                user=product.vendor_id,
+                title="New Like on Product",
+                message=f"{request.user.username} liked your product '{product.product_name}'.",
+                notification_type="like",
+                link=f"/vendor-profile?vendorId={product.vendor_id.id}&itemId={product.id}"
+            )
         return Response({"message": "Product liked", "likes_count": product.likes_count, "has_liked": True}, status=status.HTTP_200_OK)
 
 
@@ -368,6 +377,15 @@ class ProductReviewListCreateView(APIView):
             avg_rating = sum(r.rating for r in all_reviews) / all_reviews.count()
             product.rating = round(avg_rating)
             product.save(update_fields=['rating'])
+
+            if request.user != product.vendor_id:
+                send_notification_to_user(
+                    user=product.vendor_id,
+                    title="New Review on Product",
+                    message=f"{request.user.username} left a review on '{product.product_name}'.",
+                    notification_type="review",
+                    link=f"/vendor-profile?vendorId={product.vendor_id.id}&itemId={product.id}"
+                )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

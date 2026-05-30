@@ -13,7 +13,7 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
-
+from notification.utils import send_notification_to_user
 
 class TopCustomersView(APIView):
     @extend_schema(
@@ -374,6 +374,15 @@ class LikeContentView(APIView):
             like, created = ContentLike.objects.get_or_create(user=request.user, content=content)
             serializer = ContentLikeSerializer(like)
             
+            if created and request.user != content.user:
+                send_notification_to_user(
+                    user=content.user,
+                    title="New Like on Content",
+                    message=f"{request.user.username} liked your content '{content.caption or 'Untitled'}'.",
+                    notification_type="like",
+                    link=f"/vendor-profile?vendorId={content.user.id}"
+                )
+            
             return Response({
                 **serializer.data,
                 "message": "Successfully liked content" if created else "Already liked content"
@@ -429,6 +438,14 @@ class ReviewContentView(APIView):
             serializer = ContentReviewSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save(user=request.user, content=content)
+                if request.user != content.user:
+                    send_notification_to_user(
+                        user=content.user,
+                        title="New Comment on Content",
+                        message=f"{request.user.username} commented on your content '{content.caption or 'Untitled'}'.",
+                        notification_type="comment",
+                        link=f"/vendor-profile?vendorId={content.user.id}"
+                    )
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         

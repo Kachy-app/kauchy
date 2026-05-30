@@ -36,13 +36,39 @@ def get_all_conversations(user):
 
 
 @database_sync_to_async
-def store_message(sender, conversation_id, text):
+def store_message(sender, conversation_id, text, file=None):
     conversation = ConversationModel.objects.get(id=conversation_id)
     message = MessageModel.objects.create(
         conversation=conversation,
         sender=sender,
         text=text,
     )
+    if file:
+        message.file = file
+        message.save()
+
+    # Determine recipient
+    recipient = conversation.vendor if sender == conversation.buyer else conversation.buyer
+
+    # Add notification for the recipient (one unread per sender)
+    from notification.models import Notification
+    from notification.utils import send_notification_to_user
+    
+    existing_notif = Notification.objects.filter(
+        user=recipient,
+        notification_type='message',
+        is_read=False,
+        title=f"New message from {sender.username}"
+    ).exists()
+    
+    if not existing_notif:
+        send_notification_to_user(
+            user=recipient,
+            notification_type='message',
+            title=f"New message from {sender.username}",
+            message=text or "Sent an attachment.",
+            link=f'/chat?vendorId={sender.id}'
+        )
 
     return {
         'text': message.text,

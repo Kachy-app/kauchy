@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import QRScannerOverlay from '@/components/QRScannerOverlay';
 import { useAuth } from '@/context/AuthContext';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState<any[]>([]);
@@ -17,6 +19,8 @@ export default function OrdersPage() {
 
     const { user } = useAuth();
     const currentUserName = user?.user?.username || user?.username;
+    const searchParams = useSearchParams();
+    const orderIdParam = searchParams.get('id');
 
     // Effect to handle responsive sidebar state
     useEffect(() => {
@@ -27,7 +31,7 @@ export default function OrdersPage() {
                 setIsSidebarOpen(false);
             }
         };
-
+        
         // Initial check
         handleResize();
 
@@ -56,6 +60,12 @@ export default function OrdersPage() {
                         setSelectedOrder(updatedSelected);
                     } else {
                         setSelectedOrder(null);
+                    }
+                } else if (orderIdParam) {
+                    const orderFromParam = data.find((o: any) => o.id.toString() === orderIdParam);
+                    if (orderFromParam) {
+                        handleOrderClick(orderFromParam);
+                        window.history.replaceState({}, document.title, window.location.pathname);
                     }
                 }
             }
@@ -285,9 +295,14 @@ export default function OrdersPage() {
                                     <div className="space-y-3">
                                         {selectedOrder.items.map((item: any) => (
                                             <div key={item.id} className="flex justify-between text-sm">
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-2 items-center">
                                                     <span className="font-medium text-[#1d1d1d]">{item.quantity}x</span>
-                                                    <span className="text-[#4b4b4b]">{item.product_name}</span>
+                                                    <Link 
+                                                        href={`/vendor-profile?vendorId=${selectedOrder.vendor}&itemId=${item.product}`} 
+                                                        className="text-[#1c6ef2] hover:underline"
+                                                    >
+                                                        {item.product_name}
+                                                    </Link>
                                                 </div>
                                                 <span className="font-semibold text-[#1d1d1d]">₦{item.price}</span>
                                             </div>

@@ -3,7 +3,7 @@ from asgiref.sync import async_to_sync
 from .models import Notification
 from .serializers import NotificationSerializer
 
-def send_notification_to_user(user,title,message,notification_type):
+def send_notification_to_user(user,title,message,notification_type,link=""):
     
     """
     Send a notification to a user via WebSocket.
@@ -12,7 +12,8 @@ def send_notification_to_user(user,title,message,notification_type):
         user=user,
         title=title,
         message=message,
-        notification_type=notification_type
+        notification_type=notification_type,
+        link=link,
     )
     
     serializer= NotificationSerializer(notification)
@@ -27,7 +28,7 @@ def send_notification_to_user(user,title,message,notification_type):
     )
     return notification
 
-def send_bulk_notifications(users,title,message,notification_type):
+def send_bulk_notifications(users,title,message,notification_type,link=""):
     """
     Send bulk notifications to multiple users.
     """
@@ -38,7 +39,8 @@ def send_bulk_notifications(users,title,message,notification_type):
             user=user,
             title=title,
             message=message,
-            notification_type=notification_type
+            notification_type=notification_type,
+            link=link
         )
         notifications.append(notification)
 

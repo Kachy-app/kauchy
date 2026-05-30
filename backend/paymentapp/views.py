@@ -263,7 +263,8 @@ class InitializeOrderView(APIView):
                     user=vendor_user,
                     title="New Order Received",
                     message=f"You have a new order (ID: {order.id}) from {user.username}. Please review it.",
-                    notification_type="order"
+                    notification_type="order",
+                    link=f"/orders?id={order.id}"
                 )
 
             # Debit buyer wallet ONCE (after all orders created)

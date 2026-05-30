@@ -9,6 +9,7 @@ import VideoModal from '@/components/VideoModal';
 function VendorProfileContent() {
     const searchParams = useSearchParams();
     const vendorId = searchParams.get('vendorId');
+    const itemId = searchParams.get('itemId');
     const { user } = useAuth();
 
     const [vendor, setVendor] = useState<any | null>(null);
@@ -48,7 +49,17 @@ function VendorProfileContent() {
             const resProducts = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/vendor-products/${vendorId}`, { headers });
             if (resProducts.ok) {
                 const data = await resProducts.json();
-                setProducts(Array.isArray(data) ? data : []);
+                const productList = Array.isArray(data) ? data : [];
+                setProducts(productList);
+
+                if (itemId) {
+                    const foundProduct = productList.find(p => p._id === itemId || p.id?.toString() === itemId);
+                    if (foundProduct) {
+                        setSelectedProduct(foundProduct);
+                        // Clean up URL to avoid re-triggering on subsequent renders
+                        window.history.replaceState({}, document.title, window.location.pathname + "?vendorId=" + vendorId);
+                    }
+                }
             }
 
             // Fetch Vendor Content

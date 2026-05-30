@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { Search, ShoppingCart, User, Menu, X, Bell, LogOut, LayoutDashboard, Package, Home, Trophy, BarChart2, Wallet, MessageSquare } from 'lucide-react';
 
@@ -10,6 +10,7 @@ type Notification = {
     title: string;
     message: string;
     notification_type: string;
+    link?: string;
     is_read: boolean;
     created_at: string;
 };
@@ -17,6 +18,7 @@ type Notification = {
 export default function Navbar() {
     const { user, loading, logout } = useAuth();
     const pathname = usePathname();
+    const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -126,14 +128,26 @@ export default function Navbar() {
         };
     }, [user?.access]);
 
-    const handleNotificationClick = (notifId: number) => {
+    const handleNotificationClick = (notif: any) => {
         // Mark as read via WebSocket
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({ action: 'mark_read', notification_id: notifId }));
+            wsRef.current.send(JSON.stringify({ action: 'mark_read', notification_id: notif.id }));
         }
         // Optimistically update local state
-        setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
+        
+        // Hide popup
+        setIsNotificationsOpen(false);
+
+        // Redirect if there's a link (we pass link from backend for orders and likes)
+        if (notif.link) {
+            router.push(notif.link);
+        } else if (notif.notification_type === 'message') {
+            router.push('/chat');
+        } else if (notif.notification_type === 'order') {
+            router.push('/orders');
+        }
     };
 
     useEffect(() => {
@@ -246,7 +260,7 @@ export default function Navbar() {
                                                 <p className="p-6 text-center text-gray-500 text-sm">No notifications</p>
                                             ) : (
                                                 notifications.map((notif) => (
-                                                    <div key={notif.id} className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${notif.is_read ? 'opacity-60' : 'bg-blue-50/30'}`} onClick={() => handleNotificationClick(notif.id)}>
+                                                    <div key={notif.id} className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${notif.is_read ? 'opacity-60' : 'bg-blue-50/30'}`} onClick={() => handleNotificationClick(notif)}>
                                                         <p className="text-xs font-semibold text-[#1c6ef2] mb-0.5">{notif.title}</p>
                                                         <p className="text-sm text-gray-800 mb-1 leading-snug">{notif.message}</p>
                                                         <span className="text-xs text-gray-500">{new Date(notif.created_at).toLocaleDateString()}</span>

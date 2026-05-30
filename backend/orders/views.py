@@ -75,13 +75,15 @@ class ValidateOrderQRCodeView(APIView):
                 user=order.buyer,
                 title="Order Confirmed",
                 message=f"Your order {order.id} has been completed successfully.",
-                notification_type="order"
+                notification_type="order",
+                link=f"/orders?id={order.id}"
             )
             send_notification_to_user(
                 user=order.vendor,
                 title="Order Confirmed",
                 message=f"You have successfully completed order {order.id}.",
-                notification_type="order"
+                notification_type="order",
+                link=f"/orders?id={order.id}"
             )
 
             return Response({
@@ -118,7 +120,8 @@ class VendorRespondOrderView(APIView):
                     user=order.buyer,
                     title="Order Accepted",
                     message=f"Your order {order.id} has been accepted by the vendor.",
-                    notification_type="order"
+                    notification_type="order",
+                    link=f"/orders?id={order.id}"
                 )
                 return Response({"message": "Order accepted successfully", "status": order.status})
             
@@ -156,6 +159,7 @@ class VendorRespondOrderView(APIView):
                     user=order.buyer,
                     title="Order Rejected",
                     message=f"Your order {order_id} was rejected by the vendor. The amount has been refunded to your wallet.",
-                    notification_type="order"
+                    notification_type="order",
+                    link=f"/orders?id={order_id}"
                 )
                 return Response({"message": "Order rejected and deleted. Buyer refunded.", "status": "deleted"})
