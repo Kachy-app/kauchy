@@ -183,26 +183,6 @@ function FeedContent() {
                 .swiper-slide { display: flex; justify-content: center; align-items: center; }
             `}} />
 
-            {/* Overlay Navigation & Actions */}
-            <div className="absolute top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-center z-40 pointer-events-none">
-                <button 
-                    onClick={() => {
-                        if (window.history.length > 2) router.back();
-                        else router.push('/');
-                    }} 
-                    className="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/60 transition-all pointer-events-auto shadow-lg"
-                >
-                    <X size={22} />
-                </button>
-
-                <button 
-                    onClick={() => setSidebarOpen(true)}
-                    className="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex flex-col items-center justify-center hover:bg-black/60 transition-all pointer-events-auto border border-white/20 shadow-lg animate-pulse"
-                >
-                    <Info size={22} />
-                </button>
-            </div>
-
             {/* Swiper Vertical Feed Container */}
             <Swiper
                 direction="vertical"
@@ -248,6 +228,26 @@ function FeedContent() {
                     </SwiperSlide>
                 ))}
             </Swiper>
+
+            {/* Overlay Navigation & Actions */}
+            <div className="absolute top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-center z-40 pointer-events-none">
+                <button 
+                    onClick={() => {
+                        if (window.history.length > 2) router.back();
+                        else router.push('/');
+                    }} 
+                    className="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/60 transition-all pointer-events-auto shadow-lg"
+                >
+                    <X size={22} />
+                </button>
+
+                <button 
+                    onClick={() => setSidebarOpen(true)}
+                    className="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex flex-col items-center justify-center hover:bg-black/60 transition-all pointer-events-auto border border-white/20 shadow-lg animate-pulse"
+                >
+                    <Info size={22} />
+                </button>
+            </div>
 
             {/* Sidebar Overlay */}
             <div 
