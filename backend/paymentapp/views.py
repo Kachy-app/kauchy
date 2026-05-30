@@ -148,7 +148,14 @@ class InitializeOrderView(APIView):
         for cart_item in cart_items:
             product = cart_item.product
             quantity = cart_item.quantity
-            vendor_id = product.vendor_id
+            
+            # product.vendor_id actually returns the User instance in Django 
+            # if the field is defined as models.ForeignKey 
+            # (which it is in your Product model)
+            vendor_user = product.vendor_id
+            
+            # Safely grab the integer ID
+            vendor_id = vendor_user.id if hasattr(vendor_user, 'id') else vendor_user
 
             try:
                 price_naira = Decimal(product.price)
