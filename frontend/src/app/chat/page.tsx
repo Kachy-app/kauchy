@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Image as ImageIcon, X, Reply, Check, CheckCheck } from 'lucide-react';
+import LoadingModal from '@/components/LoadingModal';
 
 interface ReplyDetails {
     id: number;
@@ -96,11 +97,11 @@ const ProductLinkPreview = ({ url }: { url: string }) => {
 
     if (loading) {
         return (
-            <div className="mt-2 bg-white/20 rounded-xl border border-white/10 max-w-[260px] overflow-hidden animate-pulse">
-                <div className="h-[100px] bg-white/10" />
+            <div className="mt-2 bg-white/80 rounded-xl border border-gray-100 max-w-[260px] overflow-hidden animate-pulse">
+                <div className="h-[100px] bg-gray-200" />
                 <div className="p-2.5 space-y-2">
-                    <div className="h-3 bg-white/20 rounded w-3/4" />
-                    <div className="h-2.5 bg-white/20 rounded w-1/2" />
+                    <div className="h-3 bg-gray-200 rounded w-3/4" />
+                    <div className="h-2.5 bg-gray-200 rounded w-1/2" />
                 </div>
             </div>
         );
@@ -111,16 +112,16 @@ const ProductLinkPreview = ({ url }: { url: string }) => {
     }
 
     return (
-        <div className="mt-2 text-white bg-white/10 rounded-xl border border-white/20 cursor-pointer max-w-[260px] overflow-hidden transition-all hover:bg-white/20" onClick={() => window.open(url, '_blank')}>
-            <div className="h-[120px] bg-black/20 overflow-hidden relative">
+        <div className="mt-2 text-black bg-white/95 rounded-xl shadow-sm border border-gray-100 cursor-pointer max-w-[260px] overflow-hidden transition-all hover:shadow-md" onClick={() => window.open(url, '_blank')}>
+            <div className="h-[120px] bg-gray-50 overflow-hidden relative">
                <img src={(product.image_url && product.image_url[0]) || '/placeholder.svg'} className="w-full h-full object-cover" alt="Product" />
                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm">
                    ₦{product.price}
                </div>
             </div>
             <div className="p-2.5 flex flex-col">
-               <span className="font-semibold text-sm truncate leading-tight text-white">{product.product_name}</span>
-               <span className="text-[11px] text-white/70 line-clamp-2 mt-1 leading-snug">{product.description || 'No description available'}</span>
+               <span className="font-semibold text-sm truncate leading-tight text-gray-900">{product.product_name}</span>
+               <span className="text-[11px] text-gray-500 line-clamp-2 mt-1 leading-snug">{product.description || 'No description available'}</span>
             </div>
         </div>
     );
@@ -148,7 +149,7 @@ const MessageContent = ({ text, file, onImageClick }: { text?: string | null; fi
                             <img src={file} alt="attachment" className="w-full h-auto object-cover rounded-lg" />
                         </div>
                     ) : (
-                        <a href={file} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 underline break-all bg-black/20 p-3 rounded block text-center text-sm font-medium">
+                        <a href={file} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 underline break-all bg-black/10 p-3 rounded block text-center text-sm font-medium">
                             View File
                         </a>
                     )}
@@ -161,7 +162,7 @@ const MessageContent = ({ text, file, onImageClick }: { text?: string | null; fi
                             if (part.includes("productId=")) {
                                 return <ProductLinkPreview key={i} url={part} />;
                             } else {
-                                return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-white/80 break-all transition-colors">{part}</a>;
+                                return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline font-medium hover:opacity-80 break-all transition-opacity">{part}</a>;
                             }
                         }
                         if (!part) return null;
@@ -461,12 +462,13 @@ export default function ChatPage() {
         return () => document.removeEventListener('click', handleClickOutside);
     }, [isSidebarOpen]);
 
-    if (!user) return <div className="flex items-center justify-center h-screen bg-slate-900 text-white">Please login...</div>;
+    if (!user) return <div className="flex items-center justify-center h-screen bg-[#f4f6fa] text-[#1d1d1d]">Please login...</div>;
 
     const activeConv = conversations.find(c => c.id === activeConversationId);
 
     return (
-        <div className="flex h-[calc(100vh-70px)] overflow-hidden relative md:grid md:grid-cols-[320px_1fr] bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950" ref={chatContainerRef}>
+        <div className="flex h-[calc(100vh-70px)] overflow-hidden relative md:grid md:grid-cols-[300px_1fr] bg-white" ref={chatContainerRef}>
+            {loading && <LoadingModal />}
             
             {/* Mobile Overlay */}
             <AnimatePresence>
@@ -475,7 +477,7 @@ export default function ChatPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 top-[70px] bg-black/60 backdrop-blur-sm z-40 md:hidden"
+                        className="fixed inset-0 top-[70px] bg-black/40 z-40 md:hidden"
                         onClick={() => setIsSidebarOpen(false)}
                     />
                 )}
@@ -483,15 +485,15 @@ export default function ChatPage() {
 
             {/* Sidebar */}
             <div 
-                className={`fixed inset-y-0 left-0 top-[70px] bottom-0 w-[85vw] max-w-[320px] bg-white/5 backdrop-blur-xl border-r border-white/10 z-50 transition-transform duration-300 md:relative md:w-full md:inset-auto md:transform-none md:z-0 md:flex md:flex-col md:h-full ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+                className={`fixed inset-y-0 left-0 top-[70px] bottom-0 w-[85vw] max-w-[300px] bg-white border-r border-[#e5e7eb] z-50 transition-transform duration-300 md:relative md:w-full md:inset-auto md:transform-none md:z-0 md:flex md:flex-col md:h-full ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
                 ref={sidebarRef}
             >
-                <div className="p-5 border-b border-white/10 shrink-0 sticky top-0 z-50 md:static backdrop-blur-md bg-white/5">
-                    <h2 className="text-xl font-bold text-white tracking-wide">Messages</h2>
+                <div className="p-4 border-b border-[#e5e7eb] bg-white shrink-0 sticky top-0 z-50 md:static">
+                    <h2 className="text-lg font-semibold text-[#1d1d1d]">Messages</h2>
                 </div>
                 <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar" id="conversationsList">
                     {conversations.length === 0 && !loading && (
-                        <div className="p-8 text-center text-white/50 text-sm">
+                        <div className="p-5 text-center text-[#4b4b4b] text-sm">
                             No conversations yet. Discover products to start chatting!
                         </div>
                     )}
@@ -500,36 +502,36 @@ export default function ChatPage() {
                         const isSent = conv.last_message?.sender === user.user.id;
                         let readStatus = '';
                         if (isSent && conv.last_message) {
-                            readStatus = conv.last_message.is_read ? "✓✓" : "✓";
+                            readStatus = conv.last_message.is_read ? "Seen" : "Delivered";
                         }
 
                         return (
                             <div
                                 key={conv.id}
-                                className={`relative flex items-center gap-4 p-4 cursor-pointer transition-all duration-300 hover:bg-white/10 ${activeConversationId === conv.id ? 'bg-white/15 border-l-[3px] border-l-blue-500' : 'border-b border-white/5'}`}
+                                className={`relative flex items-center gap-3 p-3 cursor-pointer border-b border-[#e5e7eb] transition-colors duration-200 hover:bg-[#f4f6fa] ${activeConversationId === conv.id ? 'bg-[#f4f6fa] border-l-[3px] border-l-[#1c6ef2]' : ''}`}
                                 onClick={() => selectConversation(conv)}
                             >
                                 <div className="relative">
-                                    <img src={conv.other_user.profile_picture || '/placeholder.svg'} alt={conv.other_user.username} className="w-12 h-12 rounded-full object-cover shrink-0 shadow-md ring-2 ring-white/10" />
+                                    <img src={conv.other_user.profile_picture || '/placeholder.svg'} alt={conv.other_user.username} className="w-12 h-12 rounded-full object-cover shrink-0" />
                                     {conv.other_user.status && (
-                                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full shadow-sm" />
+                                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-2 mb-1">
-                                        <div className="text-[15px] font-bold text-white truncate">{conv.other_user.username}</div>
-                                        {(conv.unread_count || 0) > 0 && <span className="bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-full px-2 py-0.5 text-[10px] font-black tracking-wider ml-2 inline-block shadow-lg shadow-pink-500/30">{conv.unread_count}</span>}
+                                        <div className="text-sm font-semibold text-[#1d1d1d] truncate">{conv.other_user.username}</div>
+                                        {(conv.unread_count || 0) > 0 && <span className="bg-[#ff4d4d] text-white rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider ml-2 inline-block">{conv.unread_count}</span>}
                                     </div>
-                                    <div className="flex items-center gap-2 text-[13px] text-white/60 font-medium">
+                                    <div className="flex items-center gap-2 text-xs text-[#4b4b4b]">
                                         <span className="flex-1 min-w-0 truncate">
                                             {!conv.last_message ? "No messages yet" : (
                                                 <>
-                                                    {isSent && <span className="text-white/40 mr-1">You:</span>}
+                                                    {isSent && <span className="mr-1">You:</span>}
                                                     {conv.last_message.text ? conv.last_message.text : (conv.last_message.file ? "📷 Image/Video" : "")}
                                                 </>
                                             )}
                                         </span>
-                                        <span className={`shrink-0 text-[11px] font-bold whitespace-nowrap ${conv.last_message?.is_read ? 'text-blue-400' : 'text-white/40'}`}>{readStatus}</span>
+                                        <span className={`shrink-0 whitespace-nowrap opacity-95 ${conv.last_message?.is_read ? 'text-[#1c6ef2] font-semibold' : ''}`}>{readStatus}</span>
                                     </div>
                                 </div>
                             </div>
@@ -539,52 +541,51 @@ export default function ChatPage() {
             </div>
 
             {/* Main Chat */}
-            <div className="flex flex-col bg-transparent h-full overflow-hidden relative w-full">
+            <div className="flex flex-col bg-white h-full overflow-hidden relative w-full">
                 {!activeConversationId ? (
-                    <div className="flex flex-col items-center justify-center h-full text-white/50 bg-black/20" id="chatEmpty">
-                        <div className="flex items-center p-3 bg-white/5 backdrop-blur-md border-b border-white/10 min-h-[64px] absolute top-0 left-0 w-full z-10 md:hidden">
-                            <button className="flex items-center justify-center p-2 mr-2 text-white hover:text-blue-400 transition-colors" id="sidebarToggleBtn" onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    <div className="flex flex-col items-center justify-center h-full text-[#4b4b4b]" id="chatEmpty">
+                        <div className="flex items-center p-3 bg-[#ffb800] border-b border-[#e5e7eb] min-h-[56px] absolute top-0 left-0 w-full z-10 md:hidden">
+                            <button className="flex items-center justify-center p-2 mr-2 text-xl cursor-pointer text-[#1d1d1d] hover:text-[#1c6ef2] transition-colors" id="sidebarToggleBtn" onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}>
+                                ☰
                             </button>
                         </div>
-                        <div className="w-24 h-24 mb-6 rounded-full bg-white/5 flex items-center justify-center backdrop-blur-xl shadow-2xl border border-white/10">
-                            <span className="text-4xl text-white/40 drop-shadow-lg">💬</span>
-                        </div>
-                        <p className="text-lg font-medium tracking-wide">Select a conversation</p>
-                        <p className="text-sm mt-2 opacity-60">Your messages will appear here</p>
+                        <div className="text-6xl mb-4">💬</div>
+                        <p className="text-lg font-medium">Select a conversation to start chatting</p>
                     </div>
                 ) : (
                     <div className="flex flex-col h-full overflow-hidden" id="chatView">
                         {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5 backdrop-blur-xl shrink-0 min-h-[72px] sm:p-3 shadow-sm z-20">
+                        <div className="flex items-center justify-between p-4 border-b border-[#e5e7eb] bg-[#ffb800] shrink-0 min-h-[56px] md:justify-between sm:p-3">
                             <div className="flex items-center flex-1 min-w-0">
-                                <button className="flex md:hidden items-center justify-center p-2 mr-3 text-white hover:bg-white/10 rounded-full transition-colors shrink-0" id="sidebarToggleBtnDetail" onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}>
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                                <button className="flex md:hidden items-center justify-center p-2 mr-2 text-xl cursor-pointer text-[#1d1d1d] hover:text-[#1c6ef2] transition-colors shrink-0" id="sidebarToggleBtnDetail" onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}>
+                                    ☰
                                 </button>
-                                <div className="flex items-center gap-4 cursor-pointer hover:bg-white/5 p-1.5 -ml-1.5 rounded-xl transition-colors flex-1 min-w-0" onClick={() => router.push(`/vendor-profile?vendorId=${activeConv?.other_user.id}`)}>
+                                <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 hover:opacity-90 transition-opacity" onClick={() => router.push(`/vendor-profile?vendorId=${activeConv?.other_user.id}`)}>
                                     <div className="relative">
-                                        <img src={activeConv?.other_user.profile_picture || '/placeholder.svg'} alt="User" className="w-11 h-11 rounded-full object-cover shrink-0 shadow-md ring-2 ring-white/10" />
+                                        <img src={activeConv?.other_user.profile_picture || '/placeholder.svg'} alt="User" className="w-10 h-10 rounded-full object-cover shrink-0 sm:w-9 sm:h-9" />
                                         {activeConv?.other_user.status && (
-                                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full shadow-sm" />
+                                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-[#ffb800] rounded-full" />
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-base font-bold text-white truncate tracking-wide">{activeConv?.other_user.username}</div>
-                                        <div className={`text-xs font-medium truncate ${headerStatus === 'Online' ? 'text-emerald-400' : 'text-white/50'}`}>{headerStatus}</div>
+                                        <div className="text-sm font-bold text-[#1c6ef2] truncate">{activeConv?.other_user.username}</div>
+                                        <div className={`text-xs truncate ${headerStatus === 'Online' ? 'text-[#1c6ef2] font-semibold' : 'text-white'}`}>{headerStatus}</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Messages List */}
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-4 pb-4 sm:p-4 sm:gap-3 custom-scrollbar scroll-smooth relative" id="messagesList">
-                            {/* Subtle background glow effect */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-blue-900/10 via-transparent to-transparent pointer-events-none" />
-                            
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-3 pb-4 sm:p-3 sm:gap-2 custom-scrollbar scroll-smooth relative" id="messagesList">
                             {messages.map((msg, idx) => {
                                 const isSent = msg.sender === user.user.id;
                                 const lastSentIdx = messages.map(m => m.sender).lastIndexOf(user.user.id);
                                 const isLastSentMessage = isSent && idx === lastSentIdx;
+                                
+                                let statusText = "";
+                                if (isLastSentMessage) {
+                                    statusText = msg.is_read ? " • Seen" : " • Delivered";
+                                }
                                 
                                 const nextMsg = messages[idx + 1];
                                 let showTimestamp = true;
@@ -595,7 +596,7 @@ export default function ChatPage() {
                                         showTimestamp = false;
                                     }
                                 }
-                                if (isLastSentMessage) showTimestamp = true;
+                                if (statusText) showTimestamp = true;
 
                                 return (
                                     <motion.div 
@@ -603,15 +604,15 @@ export default function ChatPage() {
                                         initial={{ opacity: 0, y: 10, scale: 0.98 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                                        className={`flex flex-col max-w-full relative group ${isSent ? "items-end" : "items-start"} ${!showTimestamp ? '-mb-1.5' : ''}`}
+                                        className={`flex flex-col max-w-full relative group ${isSent ? "items-end" : "items-start"} ${!showTimestamp ? '-mb-1.5 sm:-mb-1' : ''}`}
                                     >
-                                        <div className={`flex items-center gap-2 max-w-[85%] sm:max-w-[75%]`}>
+                                        <div className={`flex items-center gap-2 max-w-[85%] sm:max-w-[85%]`}>
                                             
                                             {/* Reply Button (Left Side for Sent) */}
                                             {isSent && (
                                                 <button 
                                                     onClick={() => setReplyingTo(msg)}
-                                                    className="opacity-0 group-hover:opacity-100 p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-all focus:opacity-100 outline-none"
+                                                    className="opacity-0 group-hover:opacity-100 p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-all focus:opacity-100 outline-none"
                                                     title="Reply"
                                                 >
                                                     <Reply size={16} />
@@ -624,28 +625,24 @@ export default function ChatPage() {
                                                 dragConstraints={{ left: 0, right: 0 }}
                                                 dragElastic={0.1}
                                                 onDragEnd={(e, info) => {
-                                                    // Swipe left to reply to right message, Swipe right to reply to left message
                                                     if ((isSent && info.offset.x < -40) || (!isSent && info.offset.x > 40)) {
                                                         setReplyingTo(msg);
                                                     }
                                                 }}
-                                                className={`p-3.5 px-4 rounded-2xl text-[15px] leading-relaxed relative overflow-hidden backdrop-blur-sm shadow-sm ${
+                                                className={`p-3 px-3.5 rounded-xl text-sm leading-relaxed relative overflow-hidden shadow-sm ${
                                                     isSent 
-                                                        ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-tr-sm border border-blue-500/50 shadow-blue-900/20" 
-                                                        : "bg-white/10 text-white rounded-tl-sm border border-white/10"
+                                                        ? "bg-[#1c6ef2] text-white" 
+                                                        : "bg-[#ffb800] text-gray-900"
                                                 }`}
                                             >
                                                 {/* Quoted Reply inside Bubble */}
                                                 {msg.reply_to_details && (
                                                     <div 
-                                                        onClick={() => {
-                                                            // Optional: Scroll to message logic
-                                                        }}
-                                                        className={`mb-2 p-2 rounded-lg text-[13px] border-l-4 cursor-pointer hover:brightness-110 transition-all ${
-                                                            isSent ? "bg-white/20 border-white/50 text-white" : "bg-black/20 border-indigo-400 text-white/90"
+                                                        className={`mb-2 p-2 rounded-lg text-xs border-l-4 cursor-pointer hover:brightness-95 transition-all ${
+                                                            isSent ? "bg-black/10 border-white/50 text-white" : "bg-white/30 border-white text-gray-900"
                                                         }`}
                                                     >
-                                                        <div className="font-bold mb-0.5 text-[11px] uppercase tracking-wider text-inherit opacity-80">
+                                                        <div className="font-bold mb-0.5 text-[10px] uppercase tracking-wider text-inherit opacity-80">
                                                             {msg.reply_to_details.sender_id === user.user.id ? 'You' : msg.reply_to_details.sender_name}
                                                         </div>
                                                         <div className="line-clamp-2 opacity-90 leading-snug">
@@ -661,7 +658,7 @@ export default function ChatPage() {
                                             {!isSent && (
                                                 <button 
                                                     onClick={() => setReplyingTo(msg)}
-                                                    className="opacity-0 group-hover:opacity-100 p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-all focus:opacity-100 outline-none"
+                                                    className="opacity-0 group-hover:opacity-100 p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-all focus:opacity-100 outline-none"
                                                     title="Reply"
                                                 >
                                                     <Reply size={16} className="-scale-x-100" />
@@ -671,13 +668,9 @@ export default function ChatPage() {
                                         </div>
 
                                         {showTimestamp && (
-                                            <div className="flex items-center gap-1 text-[11px] font-medium text-white/40 mt-1.5 px-1">
+                                            <div className="flex items-center gap-1 text-[11px] text-[#4b4b4b] mt-1 px-1 sm:text-[10px]">
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                                {isSent && isLastSentMessage && (
-                                                    <span className={`ml-1 flex items-center ${msg.is_read ? 'text-blue-400' : 'text-white/30'}`}>
-                                                        {msg.is_read ? <CheckCheck size={14} /> : <Check size={14} />}
-                                                    </span>
-                                                )}
+                                                {statusText}
                                             </div>
                                         )}
                                     </motion.div>
@@ -687,7 +680,7 @@ export default function ChatPage() {
                         </div>
 
                         {/* Input Area */}
-                        <div className="flex flex-col bg-white/5 backdrop-blur-xl border-t border-white/10 relative z-20">
+                        <div className="flex flex-col bg-white border-t border-[#e5e7eb] relative z-20">
                             
                             {/* Replying To Indicator */}
                             <AnimatePresence>
@@ -696,20 +689,20 @@ export default function ChatPage() {
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: 'auto', opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        className="bg-black/20 border-b border-white/5 px-4 py-3 flex items-start justify-between"
+                                        className="bg-[#f4f6fa] border-b border-[#e5e7eb] px-4 py-2 flex items-start justify-between"
                                     >
                                         <div className="flex-1 min-w-0 pr-4">
-                                            <div className="text-[12px] font-bold text-blue-400 mb-1 flex items-center gap-1.5">
+                                            <div className="text-xs font-bold text-[#1c6ef2] mb-0.5 flex items-center gap-1.5">
                                                 <Reply size={12} className="-scale-x-100" />
                                                 Replying to {replyingTo.sender === user.user.id ? 'yourself' : (activeConv?.other_user.username || 'User')}
                                             </div>
-                                            <div className="text-[13px] text-white/70 line-clamp-1 italic">
+                                            <div className="text-[13px] text-[#4b4b4b] line-clamp-1 italic">
                                                 {replyingTo.file ? "📷 Attachment" : replyingTo.text}
                                             </div>
                                         </div>
                                         <button 
                                             onClick={() => setReplyingTo(null)}
-                                            className="p-1.5 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                                            className="p-1 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
                                         >
                                             <X size={16} />
                                         </button>
@@ -717,15 +710,15 @@ export default function ChatPage() {
                                 )}
                             </AnimatePresence>
 
-                            <div className="flex gap-2 p-4 sm:p-3 items-end">
+                            <div className="flex gap-2 p-4 sm:p-2.5 sm:gap-1.5 items-end">
                                 <input type="file" ref={fileInputRef} hidden onChange={handleFileUpload} accept="video/*,image/*" />
                                 <button 
-                                    className={`bg-white/5 hover:bg-white/10 text-white/70 hover:text-white w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 border border-white/10 sm:w-11 sm:h-11 shrink-0 ${isUploading ? 'opacity-50 cursor-not-allowed animate-pulse' : ''}`}
+                                    className={`bg-[#f4f6fa] text-[#4b4b4b] w-[44px] h-[44px] rounded-xl flex items-center justify-center text-xl transition-colors duration-200 border-none sm:w-10 sm:h-10 shrink-0 ${isUploading ? 'opacity-50 cursor-not-allowed animate-pulse' : 'hover:bg-[#e5e7eb] cursor-pointer'}`}
                                     onClick={() => !isUploading && fileInputRef.current?.click()}
                                     title="Send Attachment"
                                     disabled={isUploading}
                                 >
-                                    <ImageIcon size={20} />
+                                    {isUploading ? '...' : '+'}
                                 </button>
                                 <textarea
                                     ref={textareaRef}
@@ -742,20 +735,20 @@ export default function ChatPage() {
                                         }
                                     }}
                                     rows={1}
-                                    placeholder="Message..."
-                                    className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-3 px-4 text-[15px] text-white placeholder-white/40 focus:outline-none focus:bg-white/10 focus:border-white/20 sm:text-[14px] sm:py-2.5 resize-none overflow-y-auto max-h-[120px] transition-all custom-scrollbar"
-                                    style={{ minHeight: '48px' }}
+                                    placeholder="Type a message..."
+                                    className="flex-1 bg-white border border-[#e5e7eb] rounded-xl py-[10px] px-3.5 text-sm text-[#1d1d1d] placeholder-gray-500 focus:outline-none focus:border-[#1c6ef2] sm:text-[13px] sm:py-2 resize-none overflow-y-auto max-h-[120px] transition-all custom-scrollbar"
+                                    style={{ minHeight: '44px' }}
                                 />
                                 <button 
-                                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 border-none sm:w-11 sm:h-11 shrink-0 ${
+                                    className={`w-[44px] h-[44px] rounded-xl flex items-center justify-center text-lg transition-transform duration-300 border-none sm:w-10 sm:h-10 sm:text-base shrink-0 ${
                                         messageText.trim() || replyingTo 
-                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 cursor-pointer' 
-                                            : 'bg-white/5 text-white/30 cursor-not-allowed border border-white/5'
+                                            ? 'bg-[#1c6ef2] text-white hover:scale-105 cursor-pointer' 
+                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                     }`} 
                                     onClick={() => sendMessage()}
-                                    disabled={!messageText.trim() && !replyingTo}
+                                    disabled={!messageText.trim() && replyingTo === null}
                                 >
-                                    <Send size={18} className={`${messageText.trim() || replyingTo ? 'ml-1' : ''}`} />
+                                    <Send size={16} className={`${messageText.trim() || replyingTo ? 'ml-0.5' : ''}`} />
                                 </button>
                             </div>
                         </div>
@@ -770,11 +763,11 @@ export default function ChatPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[1000] bg-black/95 flex items-center justify-center p-4 backdrop-blur-xl" 
+                        className="fixed inset-0 z-[1000] bg-black/90 flex items-center justify-center p-4" 
                         onClick={() => setViewingImage(null)}
                     >
                         <button 
-                            className="absolute top-4 right-4 md:top-6 md:right-6 text-white w-12 h-12 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 transition-all z-50 border border-white/10 hover:scale-105"
+                            className="absolute top-4 right-4 md:top-6 md:right-6 text-white w-10 h-10 flex items-center justify-center bg-black/50 rounded-full hover:bg-black/70 transition-all z-50 hover:scale-105"
                             onClick={(e) => { e.stopPropagation(); setViewingImage(null); }}
                         >
                             <X size={24} />
