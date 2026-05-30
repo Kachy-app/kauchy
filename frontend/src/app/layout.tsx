@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/Upstart_3_-removebg-preview.png" type="image/png" />
+        <link rel="icon" href="/logo.png" type="image/png" />
       </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans`}>
         <ToastProvider>
