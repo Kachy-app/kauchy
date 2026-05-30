@@ -613,4 +613,10 @@ class IncrementContentView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+class GetAllContents(APIView):
+    def get(self, request):
+        contents = VendorContents.objects.all().order_by('-id')[:100]
+        serializer = VendorContentSerializer(contents, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 

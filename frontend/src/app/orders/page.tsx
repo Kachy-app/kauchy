@@ -298,7 +298,7 @@ function OrdersPageContent() {
                                                 <div className="flex gap-2 items-center">
                                                     <span className="font-medium text-[#1d1d1d]">{item.quantity}x</span>
                                                     <Link 
-                                                        href={`/vendor-profile?vendorId=${selectedOrder.vendor}&itemId=${item.product}`} 
+                                                        href={`/feed?type=product&id=${item.product}`} 
                                                         className="text-[#1c6ef2] hover:underline"
                                                     >
                                                         {item.product_name}
