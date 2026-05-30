@@ -204,7 +204,7 @@ export default function ChatPage() {
 
             if (vendorIdParamRef.current) {
                 try {
-                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/create/${vendorIdParamRef.current}`, {
+                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/create/${vendorIdParamRef.current}`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${user.access}`,
