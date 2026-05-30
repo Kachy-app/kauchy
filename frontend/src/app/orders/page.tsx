@@ -1,11 +1,11 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import QRScannerOverlay from '@/components/QRScannerOverlay';
 import { useAuth } from '@/context/AuthContext';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function OrdersPage() {
+function OrdersPageContent() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
@@ -476,5 +476,13 @@ export default function OrdersPage() {
                 orderData={selectedOrder ? { id: selectedOrder.id, status: selectedOrder.status } : undefined}
             />
         </div>
+    );
+}
+
+export default function OrdersPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center h-[calc(100vh-70px)]">Loading orders...</div>}>
+            <OrdersPageContent />
+        </Suspense>
     );
 }
