@@ -300,6 +300,14 @@ export default function Navbar() {
                             <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setIsMenuOpen(false)}>
                                 <User size={20} /> <span>Profile</span>
                             </Link>
+
+                            <Link href="/wallet" className="flex items-center justify-between px-4 py-3 bg-amber-50 text-amber-600 rounded-lg font-medium" onClick={() => setIsMenuOpen(false)}>
+                                <div className="flex items-center gap-3">
+                                    <Wallet size={20} /> <span>Wallet</span>
+                                </div>
+                                <span className="font-bold">₦{walletBalance}</span>
+                            </Link>
+
                             <Link href="/leaderboard" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg" onClick={() => setIsMenuOpen(false)}>
                                 <Trophy size={20} /> <span>Leaderboard</span>
                             </Link>
