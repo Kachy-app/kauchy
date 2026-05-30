@@ -725,7 +725,7 @@ export default function ChatPage() {
                                     title="Send Attachment"
                                     disabled={isUploading}
                                 >
-                                    {isUploading ? '...' : '+'}
+                                    {isUploading ? '...' : <ImageIcon size={20} />}
                                 </button>
                                 <textarea
                                     ref={textareaRef}
