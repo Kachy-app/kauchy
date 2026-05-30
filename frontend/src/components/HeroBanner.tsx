@@ -100,7 +100,7 @@ export default function HeroBanner() {
 
   return (
     <div 
-      className="relative w-full h-[300px] md:h-[400px] lg:h-[450px] rounded-2xl overflow-hidden mb-8 md:mb-12 shadow-lg group cursor-grab active:cursor-grabbing transition-all duration-500 ring-1 ring-transparent hover:ring-blue-400/60 hover:shadow-[0_0_50px_rgba(59,130,246,0.4)]"
+      className="relative w-full h-[220px] md:h-[400px] lg:h-[450px] rounded-2xl overflow-hidden mb-8 md:mb-12 shadow-lg group cursor-grab active:cursor-grabbing transition-all duration-500 ring-1 ring-transparent hover:ring-blue-400/60 hover:shadow-[0_0_50px_rgba(59,130,246,0.4)]"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -128,23 +128,23 @@ export default function HeroBanner() {
             <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
 
             {/* Content */}
-            <div className="relative h-full flex flex-col justify-center px-8 md:px-16 lg:px-24 z-10 w-full select-none pointer-events-none">
-              <span className={`inline-block px-3 py-1 mb-4 text-xs font-bold tracking-wider uppercase rounded-full w-fit ${slide.tagColor}`}>
+            <div className="relative h-full flex flex-col justify-center px-6 md:px-16 lg:px-24 z-10 w-full select-none pointer-events-none">
+              <span className={`inline-block px-2 md:px-3 py-1 mb-2 md:mb-4 text-[10px] md:text-xs font-bold tracking-wider uppercase rounded-full w-fit ${slide.tagColor}`}>
                 {slide.tag}
               </span>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 leading-tight max-w-2xl">
+              <h1 className="text-2xl md:text-5xl lg:text-6xl font-extrabold text-white mb-2 md:mb-4 leading-tight max-w-2xl">
                 {slide.titleStart} <br className="hidden md:block" />
                 <span className={`text-transparent bg-clip-text bg-gradient-to-r ${slide.titleHighlightGradient}`}>
                   {slide.titleHighlight}
                 </span>
               </h1>
-              <p className="text-blue-50 text-lg md:text-xl mb-8 max-w-xl">
+              <p className="text-blue-50 text-xs md:text-xl mb-4 md:mb-8 max-w-xl line-clamp-2 md:line-clamp-none">
                 {slide.description}
               </p>
               
-              <button className={`flex items-center gap-2 font-bold py-3.5 px-8 rounded-full w-fit transition-transform duration-300 hover:scale-105 shadow-md ${slide.buttonColor} pointer-events-auto`}>
+              <button className={`flex items-center gap-2 font-bold py-2 md:py-3.5 px-6 md:px-8 text-sm md:text-base rounded-full w-fit transition-transform duration-300 hover:scale-105 shadow-md ${slide.buttonColor} pointer-events-auto`}>
                 {slide.buttonText}
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
           </div>
