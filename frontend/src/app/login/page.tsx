@@ -47,7 +47,7 @@ export default function LoginPage() {
 
                 <div className="login-card">
                     <Link href="/" className="logo">
-                        <img src="https://icuklzexzhusblkzglnr.supabase.co/storage/v1/object/public/marketplace/logo/Upstart(2).png" alt="Upstart" className="logo-image" />
+                        <img src="/kauchy_logo.png" alt="Upstart" className="logo-image" />
                     </Link>
                     <h2>Welcome Back</h2>
                     <p className="subtitle">Enter your credentials to access your account</p>

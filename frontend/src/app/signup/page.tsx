@@ -85,7 +85,7 @@ export default function SignupPage() {
             <div className="w-full max-w-[420px] px-4 md:px-0">
                 <div className="bg-white rounded-xl p-5 sm:p-8 shadow-sm overflow-visible md:p-10 relative">
                     <Link href="/" className="flex items-center justify-center gap-2 text-blue-600 font-bold text-lg w-full h-12 overflow-hidden mb-6 no-underline">
-                        <img src="https://icuklzexzhusblkzglnr.supabase.co/storage/v1/object/public/marketplace/logo/Upstart(4).png" alt="Upstart" className="h-[110px] w-[137px] object-cover object-[30%_40%] md:h-[88px] sm:h-[100px] sm:w-[170px]" />
+                        <img src="/kauchy_logo.png" alt="Upstart" className="h-[110px] w-[137px] object-cover object-[30%_40%] md:h-[88px] sm:h-[100px] sm:w-[170px]" />
                     </Link>
 
                     <h2 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h2>
