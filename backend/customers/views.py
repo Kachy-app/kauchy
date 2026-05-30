@@ -14,6 +14,10 @@ from rest_framework.pagination import PageNumberPagination
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 from notification.utils import send_notification_to_user
+from Products_app.models import Product
+from Products_app.serializers import ProductSerializer
+from algorithm.utils import personalized_feed
+import random
 
 class TopCustomersView(APIView):
     @extend_schema(
@@ -620,3 +624,43 @@ class GetAllContents(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class FeedView(APIView):
+    """Unified feed endpoint that returns products and content mixed together."""
+
+    def get(self, request):
+        user = request.user
+
+        # Get products using personalized algorithm if authenticated
+        if user.is_authenticated:
+            products = personalized_feed(user)
+        else:
+            products = Product.objects.select_related('vendor_id').all()
+
+        # Get contents
+        contents = VendorContents.objects.select_related('user').all().order_by('-uploaded_at')[:100]
+
+        # Serialize both
+        product_data = ProductSerializer(products, many=True, context={'request': request}).data
+        content_data = VendorContentSerializer(contents, many=True, context={'request': request}).data
+
+        # Tag each item with its feed_type
+        for p in product_data:
+            p['feed_type'] = 'product'
+        for c in content_data:
+            c['feed_type'] = 'content'
+
+        # Interleave: ~2 products then 1 content, preserving personalized order
+        mixed = []
+        pi, ci = 0, 0
+        while pi < len(product_data) or ci < len(content_data):
+            # Add up to 2 products
+            for _ in range(2):
+                if pi < len(product_data):
+                    mixed.append(product_data[pi])
+                    pi += 1
+            # Add 1 content
+            if ci < len(content_data):
+                mixed.append(content_data[ci])
+                ci += 1
+
+        return Response(mixed, status=status.HTTP_200_OK)

@@ -6,17 +6,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import FeedSidebar from '@/components/FeedSidebar';
 
-// Utility to shuffle array
-function shuffleArray(array: any[]) {
-    let currentIndex = array.length, randomIndex;
-    while (currentIndex !== 0) {
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-    return array;
-}
-
 function FeedContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -32,6 +21,7 @@ function FeedContent() {
     const [activeItemIndex, setActiveItemIndex] = useState(0);
 
     const observerRef = useRef<IntersectionObserver | null>(null);
+    const viewedItemsRef = useRef<Set<string>>(new Set()); // Track which items have been "viewed" this session
 
     useEffect(() => {
         loadFeedData();
@@ -45,77 +35,51 @@ function FeedContent() {
                 headers["Authorization"] = `Bearer ${user.access}`;
             }
 
-            // Fetch products and contents concurrently
-            const [prodRes, contRes] = await Promise.all([
-                fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/`, { headers }),
-                fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/allcontents/`, { headers })
-            ]);
+            // Use unified feed endpoint that returns products + content mixed via personalized algorithm
+            const feedRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/feed/`, { headers });
 
-            let products: any[] = [];
-            let contents: any[] = [];
-
-            try {
-                if (prodRes.ok) {
-                    const prodData = await prodRes.json();
-                    products = Array.isArray(prodData) ? prodData : [];
-                } else {
-                    console.warn('Products fetch failed:', prodRes.status, prodRes.statusText);
-                }
-            } catch (e) {
-                console.error('Failed to parse products response:', e);
+            let feedData: any[] = [];
+            if (feedRes.ok) {
+                const raw = await feedRes.json();
+                feedData = Array.isArray(raw) ? raw : [];
+            } else {
+                console.warn('Feed fetch failed:', feedRes.status, feedRes.statusText);
             }
 
-            try {
-                if (contRes.ok) {
-                    const contData = await contRes.json();
-                    contents = Array.isArray(contData) ? contData : [];
-                } else {
-                    console.warn('Contents fetch failed:', contRes.status, contRes.statusText);
-                }
-            } catch (e) {
-                console.error('Failed to parse contents response:', e);
-            }
+            console.log(`Feed loaded: ${feedData.length} items`);
 
-            console.log(`Feed loaded: ${products.length} products, ${contents.length} contents`);
+            // Map to internal format using feed_type from backend
+            let mapped = feedData.map((item: any) => ({
+                type: (item.feed_type === 'product' ? 'product' : 'content') as 'product' | 'content',
+                item,
+            }));
 
-            let initialItemObj = null;
-
+            // If we were deep-linked to a specific item, move it to the front
             if (initialId && initialType) {
-                if (initialType === 'product') {
-                    // Try to find in fetched products, or fetch specifically
-                    const found = products.find((p: any) => p.id?.toString() === initialId || p._id?.toString() === initialId);
-                    if (found) {
-                        initialItemObj = { type: 'product', item: found };
-                        products = products.filter((p: any) => p.id !== found.id && p._id !== found._id);
-                    } else {
-                        // Fetch specific product
+                const targetIndex = mapped.findIndex((f: any) => {
+                    const id = f.item.id?.toString() || f.item._id?.toString();
+                    return f.type === initialType && id === initialId;
+                });
+
+                if (targetIndex > 0) {
+                    const [target] = mapped.splice(targetIndex, 1);
+                    mapped = [target, ...mapped];
+                } else if (targetIndex === -1 && initialType === 'product') {
+                    // Item not in feed, fetch it individually
+                    try {
                         const specRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${initialId}`, { headers });
                         if (specRes.ok) {
-                            initialItemObj = { type: 'product', item: await specRes.json() };
+                            const specData = await specRes.json();
+                            specData.feed_type = 'product';
+                            mapped = [{ type: 'product', item: specData }, ...mapped];
                         }
-                    }
-                } else if (initialType === 'content') {
-                    const found = contents.find((c: any) => c.id?.toString() === initialId);
-                    if (found) {
-                        initialItemObj = { type: 'content', item: found };
-                        contents = contents.filter((c: any) => c.id !== found.id);
+                    } catch (e) {
+                        console.error('Failed to fetch specific product:', e);
                     }
                 }
             }
 
-            // Map to feed format
-            const mappedProducts = products.map((p: any) => ({ type: 'product' as const, item: p }));
-            const mappedContents = contents.map((c: any) => ({ type: 'content' as const, item: c }));
-
-            // Mix them
-            let mixedFeed = shuffleArray([...mappedProducts, ...mappedContents]);
-
-            if (initialItemObj) {
-                mixedFeed = [initialItemObj, ...mixedFeed];
-            }
-
-            setFeedItems(mixedFeed);
-
+            setFeedItems(mapped);
         } catch (error) {
             console.error("Error loading feed:", error);
         } finally {
@@ -153,13 +117,39 @@ function FeedContent() {
         }
     };
 
+    // Track a view when an item becomes active (scroll into view)
+    const trackView = useCallback((feedItem: { type: 'product' | 'content'; item: any }) => {
+        const itemId = feedItem.item.id || feedItem.item._id;
+        const viewKey = `${feedItem.type}-${itemId}`;
+
+        // Only track once per session
+        if (viewedItemsRef.current.has(viewKey) || !user?.access || !itemId) return;
+        viewedItemsRef.current.add(viewKey);
+
+        const headers: any = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user.access}`,
+        };
+
+        if (feedItem.type === 'product') {
+            // Product view: hit the detail endpoint which auto-increments views
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${itemId}`, { headers }).catch(() => {});
+        } else {
+            // Content view: hit the dedicated view endpoint
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/content/${itemId}/view/`, {
+                method: 'POST',
+                headers,
+            }).catch(() => {});
+        }
+    }, [user]);
+
     // Intersection Observer callback to track active item
     const handleIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
         entries.forEach((entry) => {
             if (entry.isIntersecting) {
                 const index = Number(entry.target.getAttribute('data-index'));
                 setActiveItemIndex(index);
-                
+
                 // Play video if it's a content
                 const videoEl = entry.target.querySelector('video');
                 if (videoEl) {
@@ -175,6 +165,13 @@ function FeedContent() {
             }
         });
     }, []);
+
+    // Track view when activeItemIndex changes (i.e. user scrolls to a new item)
+    useEffect(() => {
+        if (feedItems.length > 0 && activeItemIndex < feedItems.length) {
+            trackView(feedItems[activeItemIndex]);
+        }
+    }, [activeItemIndex, feedItems, trackView]);
 
     useEffect(() => {
         const options = {
@@ -225,16 +222,16 @@ function FeedContent() {
                             router.push('/');
                         }
                     }} 
-                    className="w-12 h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/60 transition-all pointer-events-auto"
+                    className="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/60 transition-all pointer-events-auto"
                 >
-                    <X size={24} />
+                    <X size={22} />
                 </button>
 
                 <button 
                     onClick={() => setSidebarOpen(true)}
-                    className="w-12 h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex flex-col items-center justify-center hover:bg-black/60 transition-all pointer-events-auto border border-white/20 animate-pulse"
+                    className="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex flex-col items-center justify-center hover:bg-black/60 transition-all pointer-events-auto border border-white/20 animate-pulse"
                 >
-                    <Info size={24} />
+                    <Info size={22} />
                 </button>
             </div>
 
@@ -257,7 +254,7 @@ function FeedContent() {
                         
                         {/* Brief Info Overlay at bottom */}
                         <div className="absolute bottom-6 left-4 right-20 z-20 text-white drop-shadow-md pointer-events-none">
-                            <h2 className="text-xl font-bold mb-1 line-clamp-1">
+                            <h2 className="text-lg sm:text-xl font-bold mb-1 line-clamp-1">
                                 {feedObj.type === 'product' ? feedObj.item.product_name : (feedObj.item.vendor_username || 'Vendor')}
                             </h2>
                             <p className="text-sm text-gray-200 line-clamp-2">
@@ -354,7 +351,7 @@ function ProductFeedView({ product, isActive }: { product: any, isActive: boolea
                 ))}
             </div>
             
-            {/* Image Navigation */}
+            {/* Image Navigation - hidden on mobile, swipe instead */}
             {images.length > 1 && (
                 <>
                     {activeImage > 0 && (
