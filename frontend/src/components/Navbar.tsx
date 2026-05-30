@@ -279,14 +279,20 @@ export default function Navbar() {
                                 </button>
                                 {isProfileOpen && (
                                     <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn py-1">
-                                        <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">View Profile</Link>
-                                        {isVendor && (
-                                            <Link href="/inventory" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">My Inventory</Link>
+                                        {pathname !== '/profile' && (
+                                            <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">View Profile</Link>
                                         )}
-                                        <Link href="/orders" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">Orders</Link>
-                                        <Link href="/chat" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">Messages</Link>
+                                        {isVendor && pathname !== '/inventory' && (
+                                            <Link href="/inventory" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">My Inventory</Link>
+                                        )}
+                                        {pathname !== '/orders' && (
+                                            <Link href="/orders" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">Orders</Link>
+                                        )}
+                                        {pathname !== '/chat' && (
+                                            <Link href="/chat" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">Messages</Link>
+                                        )}
                                         <div className="h-px bg-gray-100 my-1"></div>
-                                        <button onClick={logout} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Logout</button>
+                                        <button onClick={() => { setIsProfileOpen(false); logout(); }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Logout</button>
                                     </div>
                                 )}
                             </div>
