@@ -117,7 +117,7 @@ const ProductLinkPreview = ({ url }: { url: string }) => {
     );
 };
 
-const MessageContent = ({ text, file }: { text?: string | null; file?: string | null }) => {
+const MessageContent = ({ text, file, onImageClick }: { text?: string | null; file?: string | null; onImageClick?: (url: string) => void }) => {
     const urlSplitRegex = /(https?:\/\/[^\s]+)/g;
     const urlTestRegex = /^https?:\/\/[^\s]+$/;
     
@@ -132,9 +132,13 @@ const MessageContent = ({ text, file }: { text?: string | null; file?: string | 
                     {isVideo ? (
                         <video src={file} controls className="w-full h-auto rounded-lg" />
                     ) : isImage ? (
-                        <a href={file} target="_blank" rel="noopener noreferrer" className="block cursor-pointer hover:opacity-90 transition-opacity" title="Click to view full image">
+                        <div 
+                            onClick={() => onImageClick && onImageClick(file)}
+                            className="block cursor-pointer hover:opacity-90 transition-opacity" 
+                            title="Click to view full image"
+                        >
                             <img src={file} alt="attachment" className="w-full h-auto object-cover rounded-lg" />
-                        </a>
+                        </div>
                     ) : (
                         <a href={file} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 underline break-all bg-black/10 p-3 rounded block text-center text-sm">
                             <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
@@ -173,6 +177,7 @@ export default function ChatPage() {
     const [socket, setSocket] = useState<WebSocket | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [viewingImage, setViewingImage] = useState<string | null>(null);
 
     // UI Refs
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -617,7 +622,7 @@ export default function ChatPage() {
 
                                 return (
                                     <div key={idx} className={`animate-pop-in flex flex-col max-w-full ${isSent ? "items-end" : "items-start"} ${!showTimestamp ? '-mb-1.5 sm:-mb-1' : ''}`}>
-                                        <div className={`p-3 px-3.5 rounded-xl text-sm leading-relaxed inline-block max-w-[70%] sm:max-w-[85%] ${isSent ? "bg-[#1c6ef2] text-white" : "bg-[#ffb800] text-gray-900"}`}><MessageContent text={msg.text} file={msg.file} /></div>
+                                        <div className={`p-3 px-3.5 rounded-xl text-sm leading-relaxed inline-block max-w-[70%] sm:max-w-[85%] ${isSent ? "bg-[#1c6ef2] text-white" : "bg-[#ffb800] text-gray-900"}`}><MessageContent text={msg.text} file={msg.file} onImageClick={setViewingImage} /></div>
                                         {showTimestamp && (
                                             <div className="text-[11px] text-[#4b4b4b] mt-1 ml-0.5 sm:text-[10px]">
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -663,12 +668,35 @@ export default function ChatPage() {
                                 className="bg-[#1c6ef2] text-white w-[44px] h-[44px] rounded-xl flex items-center justify-center text-lg hover:scale-105 transition-transform duration-300 cursor-pointer border-none sm:w-10 sm:h-10 sm:text-base shrink-0" 
                                 onClick={() => sendMessage()}
                             >
-                                →
+                                
+                                <span className="sr-only">Send</span>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                             </button>
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* View Image Modal */}
+            {viewingImage && (
+                <div 
+                    className="fixed inset-0 z-[1000] bg-black/90 flex items-center justify-center p-4 animate-fadeIn" 
+                    onClick={() => setViewingImage(null)}
+                >
+                    <button 
+                        className="absolute top-4 right-4 md:top-6 md:right-6 text-white w-10 h-10 flex items-center justify-center bg-black/50 rounded-full hover:bg-black/70 transition"
+                        title="Close"
+                        onClick={(e) => { e.stopPropagation(); setViewingImage(null); }}
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                    <img 
+                        src={viewingImage} 
+                        alt="Zoomed Attachment" 
+                        className="w-auto h-auto max-w-full max-h-full object-contain select-none"
+                    />
+                </div>
+            )}
         </div>
     );
 }
