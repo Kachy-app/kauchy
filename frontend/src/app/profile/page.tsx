@@ -4,6 +4,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import LoadingModal from '@/components/LoadingModal';
 import { UserProfile, University } from '@/types';
+import { useTheme } from 'next-themes';
+import { Moon, Sun } from 'lucide-react';
 
 
 export default function ProfilePage() {
@@ -14,6 +16,12 @@ export default function ProfilePage() {
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<{ bio: string; institute: string }>({ bio: '', institute: '' });
     const [universities, setUniversities] = useState<University[]>([]);
+
+    const { theme, setTheme, systemTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    const currentTheme = theme === 'system' ? systemTheme : theme;
 
     useEffect(() => {
         if (user) {
@@ -272,6 +280,26 @@ export default function ProfilePage() {
                         Edit Profile
                     </button>
                 )}
+            </div>
+
+            {/* Preferences Card */}
+            <div className="bg-white rounded-xl p-5 sm:p-6 shadow-legacy-card">
+                <h2 className="text-lg font-semibold text-[#1d1d1d] mb-5">Preferences</h2>
+                <div className="flex items-center justify-between py-2">
+                    <div>
+                        <p className="text-sm font-medium text-[#1d1d1d]">Dark Mode</p>
+                        <p className="text-xs text-gray-500">Toggle dark mode appearance</p>
+                    </div>
+                    {mounted && (
+                        <button 
+                            onClick={() => setTheme(currentTheme === 'dark' ? 'light' : 'dark')}
+                            className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors shadow-sm"
+                            title="Toggle Dark Mode"
+                        >
+                            {currentTheme === 'dark' ? <Sun size={24} className="text-amber-500" /> : <Moon size={24} />}
+                        </button>
+                    )}
+                </div>
             </div>
         </main>
     );

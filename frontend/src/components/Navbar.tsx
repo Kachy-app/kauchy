@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
-import { Search, ShoppingCart, User, Menu, X, Bell, LogOut, LayoutDashboard, Package, Home, Trophy, BarChart2, Wallet, MessageSquare, Sun, Moon } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { Search, ShoppingCart, User, Menu, X, Bell, LogOut, LayoutDashboard, Package, Home, Trophy, BarChart2, Wallet, MessageSquare } from 'lucide-react';
 
 type Notification = {
     id: number;
@@ -23,12 +22,6 @@ export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-    
-    const { theme, setTheme, systemTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
-
-    const currentTheme = theme === 'system' ? systemTheme : theme;
 
     // Dynamic data states
     const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -246,17 +239,6 @@ export default function Navbar() {
                                 </Link>
                             </div>
 
-                            {/* Theme Toggle */}
-                            {mounted && (
-                                <button 
-                                    onClick={() => setTheme(currentTheme === 'dark' ? 'light' : 'dark')}
-                                    className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors"
-                                    title="Toggle Dark Mode"
-                                >
-                                    {currentTheme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
-                                </button>
-                            )}
-
                             {/* Cart */}
                             <div className="relative">
                                 <Link href="/cart" className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-700 transition-colors relative" title="Cart">
@@ -311,15 +293,6 @@ export default function Navbar() {
                         </>
                     ) : (
                         <div className="hidden md:flex items-center gap-3 ml-2">
-                            {mounted && (
-                                <button 
-                                    onClick={() => setTheme(currentTheme === 'dark' ? 'light' : 'dark')}
-                                    className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors mr-2"
-                                    title="Toggle Dark Mode"
-                                >
-                                    {currentTheme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
-                                </button>
-                            )}
                             <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-blue-600 px-3 py-2">Login</Link>
                             <Link href="/signup" className="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all">Sign Up</Link>
                         </div>
