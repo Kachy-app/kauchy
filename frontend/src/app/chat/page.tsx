@@ -420,7 +420,7 @@ export default function ChatPage() {
         formData.append("file", file);
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/upload/`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/upload/`, {
                 method: "POST",
                 headers: {
                     'Authorization': `Bearer ${user.access}`
