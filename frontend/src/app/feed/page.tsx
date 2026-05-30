@@ -6,6 +6,15 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import FeedSidebar from '@/components/FeedSidebar';
 
+// Swiper integration
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Mousewheel, Keyboard, Virtual } from 'swiper/modules';
+import type { Swiper as SwiperType } from 'swiper';
+
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/virtual';
+
 function FeedContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -20,8 +29,8 @@ function FeedContent() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeItemIndex, setActiveItemIndex] = useState(0);
 
-    const observerRef = useRef<IntersectionObserver | null>(null);
-    const viewedItemsRef = useRef<Set<string>>(new Set()); // Track which items have been "viewed" this session
+    const swiperRef = useRef<SwiperType | null>(null);
+    const viewedItemsRef = useRef<Set<string>>(new Set());
 
     useEffect(() => {
         loadFeedData();
@@ -35,7 +44,6 @@ function FeedContent() {
                 headers["Authorization"] = `Bearer ${user.access}`;
             }
 
-            // Use unified feed endpoint that returns products + content mixed via personalized algorithm
             const feedRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/feed/`, { headers });
 
             let feedData: any[] = [];
@@ -46,15 +54,11 @@ function FeedContent() {
                 console.warn('Feed fetch failed:', feedRes.status, feedRes.statusText);
             }
 
-            console.log(`Feed loaded: ${feedData.length} items`);
-
-            // Map to internal format using feed_type from backend
             let mapped = feedData.map((item: any) => ({
                 type: (item.feed_type === 'product' ? 'product' : 'content') as 'product' | 'content',
                 item,
             }));
 
-            // If we were deep-linked to a specific item, move it to the front
             if (initialId && initialType) {
                 const targetIndex = mapped.findIndex((f: any) => {
                     const id = f.item.id?.toString() || f.item._id?.toString();
@@ -65,7 +69,6 @@ function FeedContent() {
                     const [target] = mapped.splice(targetIndex, 1);
                     mapped = [target, ...mapped];
                 } else if (targetIndex === -1 && initialType === 'product') {
-                    // Item not in feed, fetch it individually
                     try {
                         const specRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${initialId}`, { headers });
                         if (specRes.ok) {
@@ -117,12 +120,10 @@ function FeedContent() {
         }
     };
 
-    // Track a view when an item becomes active (scroll into view)
     const trackView = useCallback((feedItem: { type: 'product' | 'content'; item: any }) => {
         const itemId = feedItem.item.id || feedItem.item._id;
         const viewKey = `${feedItem.type}-${itemId}`;
 
-        // Only track once per session
         if (viewedItemsRef.current.has(viewKey) || !user?.access || !itemId) return;
         viewedItemsRef.current.add(viewKey);
 
@@ -132,10 +133,8 @@ function FeedContent() {
         };
 
         if (feedItem.type === 'product') {
-            // Product view: hit the detail endpoint which auto-increments views
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${itemId}`, { headers }).catch(() => {});
         } else {
-            // Content view: hit the dedicated view endpoint
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/content/${itemId}/view/`, {
                 method: 'POST',
                 headers,
@@ -143,56 +142,17 @@ function FeedContent() {
         }
     }, [user]);
 
-    // Intersection Observer callback to track active item
-    const handleIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
-        entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-                const index = Number(entry.target.getAttribute('data-index'));
-                setActiveItemIndex(index);
-
-                // Play video if it's a content
-                const videoEl = entry.target.querySelector('video');
-                if (videoEl) {
-                    videoEl.currentTime = 0;
-                    videoEl.play().catch(e => console.log('Autoplay blocked:', e));
-                }
-            } else {
-                // Pause video when out of view
-                const videoEl = entry.target.querySelector('video');
-                if (videoEl) {
-                    videoEl.pause();
-                }
-            }
-        });
-    }, []);
-
-    // Track view when activeItemIndex changes (i.e. user scrolls to a new item)
-    useEffect(() => {
-        if (feedItems.length > 0 && activeItemIndex < feedItems.length) {
-            trackView(feedItems[activeItemIndex]);
+    const handleSlideChange = (swiper: SwiperType) => {
+        const index = swiper.activeIndex;
+        setActiveItemIndex(index);
+        if (feedItems.length > 0 && index < feedItems.length) {
+            trackView(feedItems[index]);
         }
-    }, [activeItemIndex, feedItems, trackView]);
-
-    useEffect(() => {
-        const options = {
-            root: null,
-            rootMargin: '0px',
-            threshold: 0.6 // Trigger when 60% visible
-        };
-        observerRef.current = new IntersectionObserver(handleIntersection, options);
-
-        const elements = document.querySelectorAll('.feed-item');
-        elements.forEach((el) => observerRef.current?.observe(el));
-
-        return () => {
-            observerRef.current?.disconnect();
-        };
-    }, [feedItems, handleIntersection]);
-
+    };
 
     if (loading) {
         return (
-            <div className="w-full h-screen bg-black flex items-center justify-center text-white flex-col gap-4">
+            <div className="w-full h-[100dvh] bg-black flex items-center justify-center text-white flex-col gap-4">
                 <div className="w-12 h-12 border-4 border-gray-600 border-t-white rounded-full animate-spin"></div>
                 <p className="font-semibold tracking-widest text-sm uppercase text-gray-400">Loading Feed</p>
             </div>
@@ -201,7 +161,7 @@ function FeedContent() {
 
     if (feedItems.length === 0) {
         return (
-            <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-white gap-4">
+            <div className="w-full h-[100dvh] bg-black flex flex-col items-center justify-center text-white gap-4">
                 <p>No content available.</p>
                 <button onClick={() => router.back()} className="px-6 py-2 bg-white text-black rounded-full font-bold">Go Back</button>
             </div>
@@ -211,62 +171,78 @@ function FeedContent() {
     const activeItem = feedItems[activeItemIndex];
 
     return (
-        <div className="w-full h-screen bg-black relative overflow-hidden">
+        <div className="w-full h-[100dvh] bg-black relative overflow-hidden">
+            {/* Global Styles to hide Swiper default outlines */}
+            <style dangerouslySetInnerHTML={{__html: `
+                .swiper-container { width: 100%; height: 100%; }
+                .swiper-slide { display: flex; justify-content: center; align-items: center; }
+            `}} />
+
             {/* Overlay Navigation & Actions */}
             <div className="absolute top-0 left-0 w-full p-4 sm:p-6 flex justify-between items-center z-40 pointer-events-none">
                 <button 
                     onClick={() => {
-                        if (window.history.length > 2) {
-                            router.back();
-                        } else {
-                            router.push('/');
-                        }
+                        if (window.history.length > 2) router.back();
+                        else router.push('/');
                     }} 
-                    className="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/60 transition-all pointer-events-auto"
+                    className="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-black/60 transition-all pointer-events-auto shadow-lg"
                 >
                     <X size={22} />
                 </button>
 
                 <button 
                     onClick={() => setSidebarOpen(true)}
-                    className="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex flex-col items-center justify-center hover:bg-black/60 transition-all pointer-events-auto border border-white/20 animate-pulse"
+                    className="w-10 h-10 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md text-white rounded-full flex flex-col items-center justify-center hover:bg-black/60 transition-all pointer-events-auto border border-white/20 shadow-lg animate-pulse"
                 >
                     <Info size={22} />
                 </button>
             </div>
 
-            {/* Scrollable Feed Container */}
-            <div className="w-full h-full overflow-y-scroll snap-y snap-mandatory custom-scrollbar-hide bg-black relative">
+            {/* Swiper Vertical Feed Container */}
+            <Swiper
+                direction="vertical"
+                slidesPerView={1}
+                spaceBetween={0}
+                mousewheel={true}
+                keyboard={{ enabled: true }}
+                virtual={{ enabled: true, addSlidesAfter: 2, addSlidesBefore: 2 }}
+                modules={[Mousewheel, Keyboard, Virtual]}
+                onSwiper={(swiper) => { swiperRef.current = swiper; }}
+                onSlideChange={handleSlideChange}
+                className="w-full h-full bg-black swiper-container"
+                touchEventsTarget="container"
+                resistanceRatio={0.85}
+            >
                 {feedItems.map((feedObj, index) => (
-                    <div 
-                        key={`${feedObj.type}-${feedObj.item.id || feedObj.item._id}-${index}`} 
-                        className="feed-item w-full h-screen snap-start snap-always relative flex items-center justify-center bg-zinc-950"
-                        data-index={index}
-                    >
-                        {feedObj.type === 'product' ? (
-                            <ProductFeedView product={feedObj.item} isActive={index === activeItemIndex} />
-                        ) : (
-                            <ContentFeedView content={feedObj.item} isActive={index === activeItemIndex} />
-                        )}
-                        
-                        {/* Gradient overlay for bottom text visibility */}
-                        <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-10" />
-                        
-                        {/* Brief Info Overlay at bottom */}
-                        <div className="absolute bottom-6 left-4 right-20 z-20 text-white drop-shadow-md pointer-events-none">
-                            <h2 className="text-lg sm:text-xl font-bold mb-1 line-clamp-1">
-                                {feedObj.type === 'product' ? feedObj.item.product_name : (feedObj.item.vendor_username || 'Vendor')}
-                            </h2>
-                            <p className="text-sm text-gray-200 line-clamp-2">
-                                {feedObj.type === 'product' ? (feedObj.item.description || feedObj.item.category) : feedObj.item.caption}
-                            </p>
-                            {feedObj.type === 'product' && (
-                                <p className="text-lg font-bold text-amber-400 mt-2">₦{feedObj.item.price}</p>
+                    <SwiperSlide key={`${feedObj.type}-${feedObj.item.id || feedObj.item._id}-${index}`} virtualIndex={index}>
+                        <div className="w-full h-full relative flex items-center justify-center bg-zinc-950">
+                            {feedObj.type === 'product' ? (
+                                <ProductFeedView product={feedObj.item} isActive={index === activeItemIndex} />
+                            ) : (
+                                <ContentFeedView content={feedObj.item} isActive={index === activeItemIndex} />
                             )}
+                            
+                            {/* Gradient overlay for bottom text visibility */}
+                            <div className="absolute bottom-0 left-0 w-full h-2/5 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none z-10" />
+                            
+                            {/* Brief Info Overlay at bottom */}
+                            <div className="absolute bottom-6 left-4 right-20 z-20 text-white drop-shadow-md pointer-events-none flex flex-col justify-end">
+                                <h2 className="text-xl sm:text-2xl font-bold mb-1 line-clamp-1 drop-shadow-lg">
+                                    {feedObj.type === 'product' ? feedObj.item.product_name : (feedObj.item.vendor_username || 'Vendor')}
+                                </h2>
+                                <p className="text-[15px] sm:text-base text-gray-200 line-clamp-2 drop-shadow-md leading-snug">
+                                    {feedObj.type === 'product' ? (feedObj.item.description || feedObj.item.category) : feedObj.item.caption}
+                                </p>
+                                {feedObj.type === 'product' && (
+                                    <div className="mt-2.5 inline-block bg-black/50 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10 self-start">
+                                        <p className="text-lg font-bold text-amber-400">₦{feedObj.item.price}</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    </SwiperSlide>
                 ))}
-            </div>
+            </Swiper>
 
             {/* Sidebar Overlay */}
             <div 
@@ -291,7 +267,7 @@ function FeedContent() {
 export default function FeedPage() {
     return (
         <Suspense fallback={
-            <div className="w-full h-screen bg-black flex items-center justify-center text-white flex-col gap-4">
+            <div className="w-full h-[100dvh] bg-black flex items-center justify-center text-white flex-col gap-4">
                 <div className="w-12 h-12 border-4 border-gray-600 border-t-white rounded-full animate-spin"></div>
                 <p className="font-semibold tracking-widest text-sm uppercase text-gray-400">Loading Feed</p>
             </div>
@@ -305,79 +281,36 @@ export default function FeedPage() {
 function ProductFeedView({ product, isActive }: { product: any, isActive: boolean }) {
     const images = product.image_url && product.image_url.length > 0 ? product.image_url : ['/placeholder.svg'];
     const [activeImage, setActiveImage] = useState(0);
-    const scrollRef = useRef<HTMLDivElement>(null);
-
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const scrollLeft = e.currentTarget.scrollLeft;
-        const width = e.currentTarget.clientWidth;
-        const newIndex = Math.round(scrollLeft / width);
-        if (newIndex !== activeImage) {
-            setActiveImage(newIndex);
-        }
-    };
-
-    const nextImage = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (activeImage < images.length - 1 && scrollRef.current) {
-            const width = scrollRef.current.clientWidth;
-            scrollRef.current.scrollTo({ left: (activeImage + 1) * width, behavior: 'smooth' });
-        }
-    };
-
-    const prevImage = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (activeImage > 0 && scrollRef.current) {
-            const width = scrollRef.current.clientWidth;
-            scrollRef.current.scrollTo({ left: (activeImage - 1) * width, behavior: 'smooth' });
-        }
-    };
 
     return (
         <div className="w-full h-full relative flex items-center justify-center bg-zinc-900 overflow-hidden">
-            <div 
-                ref={scrollRef}
-                className="w-full h-full flex overflow-x-auto snap-x snap-mandatory custom-scrollbar-hide"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                onScroll={handleScroll}
+            <Swiper
+                direction="horizontal"
+                slidesPerView={1}
+                spaceBetween={0}
+                onSlideChange={(swiper) => setActiveImage(swiper.activeIndex)}
+                className="w-full h-full"
+                nested={true} // Allows horizontal swiper inside vertical swiper
             >
                 {images.map((img: any, idx: number) => (
-                    <div key={idx} className="min-w-full h-full snap-start snap-always flex items-center justify-center shrink-0">
+                    <SwiperSlide key={idx} className="w-full h-full flex items-center justify-center">
                         <img 
                             src={img} 
                             alt={`${product.product_name} - ${idx + 1}`} 
-                            className="w-full h-full object-cover sm:object-contain transition-opacity duration-300"
+                            className="w-full h-full object-cover sm:object-contain transition-opacity duration-500 ease-in-out"
+                            style={{ opacity: isActive ? 1 : 0 }}
                         />
-                    </div>
+                    </SwiperSlide>
                 ))}
-            </div>
+            </Swiper>
             
-            {/* Image Navigation - hidden on mobile, swipe instead */}
+            {/* Dots indicator for Images */}
             {images.length > 1 && (
-                <>
-                    {activeImage > 0 && (
-                        <button 
-                            onClick={prevImage}
-                            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 backdrop-blur-md rounded-full hidden sm:flex items-center justify-center text-white hover:bg-black/60 z-30"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-                    )}
-                    {activeImage < images.length - 1 && (
-                        <button 
-                            onClick={nextImage}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 backdrop-blur-md rounded-full hidden sm:flex items-center justify-center text-white hover:bg-black/60 z-30"
-                        >
-                            <ChevronRight size={24} />
-                        </button>
-                    )}
-                    
-                    {/* Dots indicator */}
-                    <div className="absolute bottom-28 left-1/2 -translate-x-1/2 flex gap-1.5 z-30">
-                        {images.map((img: any, idx: number) => (
-                            <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all ${idx === activeImage ? 'bg-white w-4' : 'bg-white/50 shadow-sm'}`} />
-                        ))}
-                    </div>
-                </>
+                <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 flex gap-1.5 z-30 pointer-events-none">
+                    {images.map((_: any, idx: number) => (
+                        <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${idx === activeImage ? 'bg-white w-4' : 'bg-white/40 shadow-sm'}`} />
+                    ))}
+                </div>
             )}
         </div>
     );
@@ -425,8 +358,8 @@ function ContentFeedView({ content, isActive }: { content: any, isActive: boolea
             {/* Play/Pause indicator overlay */}
             {!isPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-30">
-                    <div className="w-16 h-16 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white pl-1">
-                        <Play size={32} />
+                    <div className="w-20 h-20 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white pl-2 border border-white/20 shadow-2xl">
+                        <Play size={40} />
                     </div>
                 </div>
             )}

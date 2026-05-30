@@ -55,17 +55,20 @@ class UnifiedChatConsumer(AsyncWebsocketConsumer):
         if action == "send_message":
             conversation_id = data["conversation_id"]
             message = data["message"]
+            reply_to_id = data.get("reply_to_id")
 
-            message_data = await store_message(self.user, conversation_id, message)
+            message_data = await store_message(self.user, conversation_id, message, reply_to_id=reply_to_id)
 
             await self.channel_layer.group_send(
                 f"chat_{conversation_id}",
                 {
                     'type':"chat_message",
                     "conversation_id":conversation_id,
+                    "id": message_data.get("id"),
                     "message": message_data["text"],
                     "sender": message_data["sender"],
-                    'timestamp': message_data["timestamp"]
+                    'timestamp': message_data["timestamp"],
+                    "reply_to_details": message_data.get("reply_to_details")
                 }
             )
 
@@ -104,10 +107,12 @@ class UnifiedChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type':'new_message',
             'conversation_id': event['conversation_id'],
+            'id': event.get('id'),
             'message': event.get('message', ''),
             'file': event.get('file_url'),
             'sender': event['sender'],
-            'timestamp': event['timestamp']
+            'timestamp': event['timestamp'],
+            'reply_to_details': event.get('reply_to_details')
         }, default=str))
     
     
