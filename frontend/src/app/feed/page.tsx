@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { X, Info, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useCart } from '@/context/CartContext';
+import { useToast } from '@/context/ToastContext';
 import FeedSidebar from '@/components/FeedSidebar';
 
 // Utility to shuffle array
@@ -17,11 +17,11 @@ function shuffleArray(array: any[]) {
     return array;
 }
 
-export default function FeedPage() {
+function FeedContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { user } = useAuth();
-    const { addToCart } = useCart();
+    const { showToast } = useToast();
 
     const initialType = searchParams.get('type');
     const initialId = searchParams.get('id');
@@ -96,6 +96,36 @@ export default function FeedPage() {
             console.error("Error loading feed:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const addToCart = async (product: any, quantity: number) => {
+        if (!user) {
+            showToast('Please login to add items to cart', 'error');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/cart-items/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.access}`
+                },
+                body: JSON.stringify({
+                    product: product._id || product.id,
+                    quantity: quantity
+                })
+            });
+
+            if (res.ok) {
+                showToast('Added to cart!', 'success');
+            } else {
+                const data = await res.json();
+                showToast(data.error || data.message || 'Failed to add to cart', 'error');
+            }
+        } catch (e) {
+            showToast('Network error', 'error');
         }
     };
 
@@ -231,6 +261,19 @@ export default function FeedPage() {
     );
 }
 
+export default function FeedPage() {
+    return (
+        <Suspense fallback={
+            <div className="w-full h-screen bg-black flex items-center justify-center text-white flex-col gap-4">
+                <div className="w-12 h-12 border-4 border-gray-600 border-t-white rounded-full animate-spin"></div>
+                <p className="font-semibold tracking-widest text-sm uppercase text-gray-400">Loading Feed</p>
+            </div>
+        }>
+            <FeedContent />
+        </Suspense>
+    );
+}
+
 // Sub-components for clean rendering
 function ProductFeedView({ product, isActive }: { product: any, isActive: boolean }) {
     const images = product.image_url && product.image_url.length > 0 ? product.image_url : ['/placeholder.svg'];
@@ -276,7 +319,7 @@ function ProductFeedView({ product, isActive }: { product: any, isActive: boolea
                     
                     {/* Dots indicator */}
                     <div className="absolute bottom-28 left-1/2 -translate-x-1/2 flex gap-1.5 z-30">
-                        {images.map((_, idx) => (
+                        {images.map((img: any, idx: number) => (
                             <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all ${idx === activeImage ? 'bg-white w-4' : 'bg-white/50'}`} />
                         ))}
                     </div>

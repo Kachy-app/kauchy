@@ -145,6 +145,7 @@ function VendorProfileContent() {
                                     className="flex items-center justify-center p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 cursor-pointer transition-all hover:bg-gray-200 hover:text-blue-600 hover:border-blue-600 shrink-0"
                                     onClick={handleShare}
                                     aria-label="Share Profile"
+                                >
                                 </button>
                             </div>
                         </div>
