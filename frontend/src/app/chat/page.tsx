@@ -550,7 +550,12 @@ export default function ChatPage() {
                                     </div>
                                     <div className="flex items-center gap-2 text-xs text-[#4b4b4b]">
                                         <span className="flex-1 min-w-0 truncate">
-                                            {!conv.last_message ? "No messages yet" : (isSent ? `You: ${conv.last_message.text}` : conv.last_message.text)}
+                                            {!conv.last_message ? "No messages yet" : (
+                                                <>
+                                                    {isSent && "You: "}
+                                                    {conv.last_message.text ? conv.last_message.text : (conv.last_message.file ? "📷 Image" : "")}
+                                                </>
+                                            )}
                                         </span>
                                         <span className="shrink-0 text-[#4b4b4b] whitespace-nowrap opacity-95">{readStatus}</span>
                                     </div>
