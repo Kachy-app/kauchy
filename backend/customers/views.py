@@ -630,14 +630,21 @@ class FeedView(APIView):
     def get(self, request):
         user = request.user
 
-        # Get products using personalized algorithm if authenticated
-        if user.is_authenticated:
+        vendor_id = request.query_params.get('vendor_id')
+
+        # Get products
+        if vendor_id:
+            products = Product.objects.select_related('vendor_id').filter(vendor_id=vendor_id)
+        elif user.is_authenticated:
             products = personalized_feed(user)
         else:
             products = Product.objects.select_related('vendor_id').all()
 
         # Get contents
-        contents = VendorContents.objects.select_related('user').all().order_by('-uploaded_at')[:100]
+        if vendor_id:
+            contents = VendorContents.objects.select_related('user').filter(user_id=vendor_id).order_by('-uploaded_at')[:100]
+        else:
+            contents = VendorContents.objects.select_related('user').all().order_by('-uploaded_at')[:100]
 
         # Serialize both
         product_data = ProductSerializer(products, many=True, context={'request': request}).data

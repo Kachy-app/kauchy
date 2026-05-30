@@ -23,6 +23,7 @@ function FeedContent() {
 
     const initialType = searchParams.get('type');
     const initialId = searchParams.get('id');
+    const vendorId = searchParams.get('vendorId');
 
     const [feedItems, setFeedItems] = useState<{ type: 'product' | 'content'; item: any }[]>([]);
     const [loading, setLoading] = useState(true);
@@ -34,7 +35,7 @@ function FeedContent() {
 
     useEffect(() => {
         loadFeedData();
-    }, [user, initialType, initialId]);
+    }, [user, initialType, initialId, vendorId]);
 
     const loadFeedData = async () => {
         setLoading(true);
@@ -44,7 +45,11 @@ function FeedContent() {
                 headers["Authorization"] = `Bearer ${user.access}`;
             }
 
-            const feedRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/customers/feed/`, { headers });
+            const feedUrl = vendorId 
+                ? `${process.env.NEXT_PUBLIC_API_URL}/customers/feed/?vendor_id=${vendorId}`
+                : `${process.env.NEXT_PUBLIC_API_URL}/customers/feed/`;
+
+            const feedRes = await fetch(feedUrl, { headers });
 
             let feedData: any[] = [];
             if (feedRes.ok) {
