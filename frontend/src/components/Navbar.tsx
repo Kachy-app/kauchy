@@ -249,13 +249,17 @@ export default function Navbar() {
 
                             {/* Notifications Dropdown */}
                             <div className="relative" ref={notificationRef}>
-                                <button className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-700 transition-colors relative" onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} title="Notifications">
+                                <button className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-700 transition-colors relative" onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsProfileOpen(false); setIsMenuOpen(false); }} title="Notifications">
                                     <Bell size={22} />
                                     {unreadCount > 0 && <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[10px] font-bold rounded-full border-2 border-white">{unreadCount}</span>}
                                 </button>
                                 {isNotificationsOpen && (
-                                    <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
-                                        <div className="max-h-[300px] overflow-y-auto">
+                                    <div className="fixed inset-x-0 top-[70px] sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-3 sm:w-80 bg-white sm:rounded-xl shadow-xl border-b sm:border border-gray-100 overflow-hidden z-[200] animate-fadeIn">
+                                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
+                                            <h3 className="text-sm font-bold text-gray-900">Notifications</h3>
+                                            {unreadCount > 0 && <span className="text-xs font-medium text-blue-600">{unreadCount} unread</span>}
+                                        </div>
+                                        <div className="max-h-[60vh] sm:max-h-[300px] overflow-y-auto">
                                             {notifications.length === 0 ? (
                                                 <p className="p-6 text-center text-gray-500 text-sm">No notifications</p>
                                             ) : (
@@ -305,7 +309,7 @@ export default function Navbar() {
                     )}
 
                     {/* Mobile Menu Button - Right */}
-                    <button className="md:hidden p-2 text-gray-900 hover:text-blue-600 ml-1" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                    <button className="md:hidden p-2 text-gray-900 hover:text-blue-600 ml-1" onClick={() => { setIsMenuOpen(!isMenuOpen); setIsNotificationsOpen(false); setIsProfileOpen(false); }}>
                         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
                 </div>
