@@ -102,14 +102,14 @@ function FeedContent() {
         }
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/cart-items/`, {
+            const productId = product._id || product.id;
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/cart-items/${productId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${user.access}`
                 },
                 body: JSON.stringify({
-                    product: product._id || product.id,
                     quantity: quantity
                 })
             });
