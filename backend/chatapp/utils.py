@@ -1,5 +1,6 @@
 from channels.db import database_sync_to_async
 from django.db.models import Q, Prefetch, Count, Max
+from django.db.models.functions import Coalesce
 from .models import ConversationModel, MessageModel
 from .serializers import ConversationSerializer, MessageSerializer
 from django.contrib.auth import get_user_model
@@ -22,7 +23,9 @@ def get_all_conversations(user):
             filter=Q(messages__is_read=False) & ~Q(messages__sender=user)
         ),
         last_message_time_db=Max('messages__timestamp')
-    ).order_by('-last_message_time_db')
+    ).order_by(
+        Coalesce('last_message_time_db', 'created_at').desc()
+    )
 
 
     serializer = ConversationSerializer(
