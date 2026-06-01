@@ -70,6 +70,19 @@ class ConversationSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="sender.username", read_only=True)
+    reply_to_details = serializers.SerializerMethodField()
+
     class Meta:
         model = MessageModel
         fields = '__all__'
+
+    def get_reply_to_details(self, obj):
+        if obj.reply_to:
+            return {
+                "id": obj.reply_to.id,
+                "text": obj.reply_to.text,
+                "file": obj.reply_to.file.url if obj.reply_to.file else None,
+                "sender_name": obj.reply_to.sender.username,
+                "sender_id": obj.reply_to.sender.id,
+            }
+        return None

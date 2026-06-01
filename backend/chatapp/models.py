@@ -24,6 +24,7 @@ class MessageModel(models.Model):
     file = models.FileField(upload_to="chat_files/", blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+    reply_to = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='replies')
 
     class Meta:
         ordering = ["timestamp"]

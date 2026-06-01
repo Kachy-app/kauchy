@@ -1,18 +1,17 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import ProductModal from '@/components/ProductModal';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/context/ToastContext';
 
 
 export default function LeaderboardPage() {
     const { showToast } = useToast();
+    const router = useRouter();
     const [vendors, setVendors] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]);
     const [trendingProducts, setTrendingProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('vendors');
-    const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         async function fetchData() {
@@ -36,8 +35,7 @@ export default function LeaderboardPage() {
     }, []);
 
     const openProduct = (p: any) => {
-        setSelectedProduct(p);
-        setIsModalOpen(true);
+        router.push(`/feed?type=product&id=${p._id || p.id}`);
     };
 
     const getRankClass = (index: number) => {
@@ -156,14 +154,6 @@ export default function LeaderboardPage() {
                     </div>
                 </div>
             </main>
-
-            {isModalOpen && selectedProduct && (
-                <ProductModal
-                    product={selectedProduct}
-                    onClose={() => setIsModalOpen(false)}
-                    addToCart={() => { }}
-                />
-            )}
         </div>
     );
 }

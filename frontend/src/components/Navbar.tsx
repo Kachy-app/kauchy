@@ -249,21 +249,78 @@ export default function Navbar() {
 
                             {/* Notifications Dropdown */}
                             <div className="relative" ref={notificationRef}>
-                                <button className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-700 transition-colors relative" onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} title="Notifications">
+                                <button className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 text-gray-700 transition-colors relative" onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsProfileOpen(false); setIsMenuOpen(false); }} title="Notifications">
                                     <Bell size={22} />
                                     {unreadCount > 0 && <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[10px] font-bold rounded-full border-2 border-white">{unreadCount}</span>}
                                 </button>
                                 {isNotificationsOpen && (
-                                    <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
-                                        <div className="max-h-[300px] overflow-y-auto">
+                                    <div className="fixed inset-x-0 top-[70px] sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-3 sm:w-80 bg-white sm:rounded-xl shadow-xl border-b sm:border border-gray-100 overflow-hidden z-[200] animate-fadeIn">
+                                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
+                                            <h3 className="text-sm font-bold text-gray-900">Notifications</h3>
+                                            <div className="flex items-center gap-2">
+                                                {unreadCount > 0 && (
+                                                    <button 
+                                                        onClick={() => {
+                                                            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                                                wsRef.current.send(JSON.stringify({ action: 'mark_all_read' }));
+                                                            }
+                                                            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                                                            setUnreadCount(0);
+                                                        }}
+                                                        className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                                                    >
+                                                        Mark all read
+                                                    </button>
+                                                )}
+                                                {notifications.length > 0 && (
+                                                    <>
+                                                        {unreadCount > 0 && <span className="text-gray-300">|</span>}
+                                                        <button 
+                                                            onClick={() => {
+                                                                notifications.forEach(n => {
+                                                                    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                                                        wsRef.current.send(JSON.stringify({ action: 'delete', notification_id: n.id }));
+                                                                    }
+                                                                });
+                                                                setNotifications([]);
+                                                                setUnreadCount(0);
+                                                            }}
+                                                            className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors"
+                                                        >
+                                                            Clear all
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="max-h-[60vh] sm:max-h-[300px] overflow-y-auto">
                                             {notifications.length === 0 ? (
                                                 <p className="p-6 text-center text-gray-500 text-sm">No notifications</p>
                                             ) : (
                                                 notifications.map((notif) => (
-                                                    <div key={notif.id} className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${notif.is_read ? 'opacity-60' : 'bg-blue-50/30'}`} onClick={() => handleNotificationClick(notif)}>
-                                                        <p className="text-xs font-semibold text-[#1c6ef2] mb-0.5">{notif.title}</p>
-                                                        <p className="text-sm text-gray-800 mb-1 leading-snug">{notif.message}</p>
-                                                        <span className="text-xs text-gray-500">{new Date(notif.created_at).toLocaleDateString()}</span>
+                                                    <div key={notif.id} className={`group relative p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${notif.is_read ? 'opacity-60' : 'bg-blue-50/30'}`} onClick={() => handleNotificationClick(notif)}>
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                                                    wsRef.current.send(JSON.stringify({ action: 'delete', notification_id: notif.id }));
+                                                                }
+                                                                setNotifications(prev => prev.filter(n => n.id !== notif.id));
+                                                                if (!notif.is_read) setUnreadCount(prev => Math.max(0, prev - 1));
+                                                            }}
+                                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-gray-200 text-gray-400 hover:text-red-500 transition-all"
+                                                            title="Remove"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                        <div className="flex items-start gap-2 pr-4">
+                                                            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${notif.is_read ? 'bg-transparent' : 'bg-blue-500'}`} />
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-semibold text-[#1c6ef2] mb-0.5">{notif.title}</p>
+                                                                <p className="text-sm text-gray-800 mb-1 leading-snug">{notif.message}</p>
+                                                                <span className="text-xs text-gray-500">{new Date(notif.created_at).toLocaleDateString()}</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 ))
                                             )}
@@ -279,14 +336,20 @@ export default function Navbar() {
                                 </button>
                                 {isProfileOpen && (
                                     <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn py-1">
-                                        <Link href="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">View Profile</Link>
-                                        {isVendor && (
-                                            <Link href="/inventory" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">My Inventory</Link>
+                                        {pathname !== '/profile' && (
+                                            <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">View Profile</Link>
                                         )}
-                                        <Link href="/orders" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">Orders</Link>
-                                        <Link href="/chat" className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">Messages</Link>
+                                        {isVendor && pathname !== '/inventory' && (
+                                            <Link href="/inventory" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">My Inventory</Link>
+                                        )}
+                                        {pathname !== '/orders' && (
+                                            <Link href="/orders" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">Orders</Link>
+                                        )}
+                                        {pathname !== '/chat' && (
+                                            <Link href="/chat" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600">Messages</Link>
+                                        )}
                                         <div className="h-px bg-gray-100 my-1"></div>
-                                        <button onClick={logout} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Logout</button>
+                                        <button onClick={() => { setIsProfileOpen(false); logout(); }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Logout</button>
                                     </div>
                                 )}
                             </div>
@@ -299,7 +362,7 @@ export default function Navbar() {
                     )}
 
                     {/* Mobile Menu Button - Right */}
-                    <button className="md:hidden p-2 text-gray-900 hover:text-blue-600 ml-1" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                    <button className="md:hidden p-2 text-gray-900 hover:text-blue-600 ml-1" onClick={() => { setIsMenuOpen(!isMenuOpen); setIsNotificationsOpen(false); setIsProfileOpen(false); }}>
                         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
                 </div>

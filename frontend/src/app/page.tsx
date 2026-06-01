@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
-import ProductModal from '@/components/ProductModal';
 import Footer from '@/components/Footer';
 import HeroBanner from '@/components/HeroBanner';
 import CategoryNav from '@/components/CategoryNav';
@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function Home(): JSX.Element {
   const { user } = useAuth();
+  const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,13 +17,11 @@ export default function Home(): JSX.Element {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 40;
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProducts();
 
-    // Auto-open product modal if productId is in URL
+    // Auto-open product modal if productId is in URL (now navigates to feed)
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const productId = params.get('productId');
@@ -68,20 +67,11 @@ export default function Home(): JSX.Element {
     setCurrentPage(1);
   }, [currentCategory, products]);
 
-  const handleProductClick = async (product: any) => {
-    try {
-      const headers: any = { "Content-Type": "application/json" };
-      if (user) headers["Authorization"] = `Bearer ${user.access}`;
-
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${product.id}`, { headers });
-      if (res.ok) {
-        const details = await res.json();
-        setSelectedProduct(details);
-        setIsModalOpen(true);
+  const handleProductClick = (product: any) => {
+      const productId = product._id || product.id;
+      if (productId) {
+          router.push(`/feed?type=product&id=${productId}`);
       }
-    } catch (e) {
-      console.error(e);
-    }
   };
 
   const categories = [
@@ -188,13 +178,6 @@ export default function Home(): JSX.Element {
           )}
         </section>
 
-        {isModalOpen && selectedProduct && (
-          <ProductModal
-            product={selectedProduct}
-            onClose={() => setIsModalOpen(false)}
-            addToCart={() => { }}
-          />
-        )}
         <Footer />
       </div>
     </>

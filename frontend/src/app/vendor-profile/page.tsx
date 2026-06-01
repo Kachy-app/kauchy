@@ -1,13 +1,12 @@
 "use client";
 import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import ProductModal from '@/components/ProductModal';
-import VideoModal from '@/components/VideoModal';
 
 
 function VendorProfileContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const vendorId = searchParams.get('vendorId');
     const itemId = searchParams.get('itemId');
     const { user } = useAuth();
@@ -17,9 +16,6 @@ function VendorProfileContent() {
     const [content, setContent] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState('products');
     const [loading, setLoading] = useState(true);
-
-    const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-    const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
 
     useEffect(() => {
         if (vendorId) {
@@ -55,7 +51,7 @@ function VendorProfileContent() {
                 if (itemId) {
                     const foundProduct = productList.find(p => p._id === itemId || p.id?.toString() === itemId);
                     if (foundProduct) {
-                        setSelectedProduct(foundProduct);
+                        router.push(`/feed?type=product&id=${itemId}&vendorId=${vendorId}`);
                         // Clean up URL to avoid re-triggering on subsequent renders
                         window.history.replaceState({}, document.title, window.location.pathname + "?vendorId=" + vendorId);
                     }
@@ -150,13 +146,6 @@ function VendorProfileContent() {
                                     onClick={handleShare}
                                     aria-label="Share Profile"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <circle cx="18" cy="5" r="3"></circle>
-                                        <circle cx="6" cy="12" r="3"></circle>
-                                        <circle cx="18" cy="19" r="3"></circle>
-                                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                                    </svg>
                                 </button>
                             </div>
                         </div>
@@ -205,7 +194,7 @@ function VendorProfileContent() {
                         <div className="flex flex-col gap-4">
                             <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
                                 {products.length > 0 ? products.map(p => (
-                                    <div key={p._id || p.id} className="bg-white rounded-xl overflow-hidden shadow-legacy-card cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-legacy-hover animate-fadeIn" onClick={() => setSelectedProduct(p)}>
+                                    <div key={p._id || p.id} className="bg-white rounded-xl overflow-hidden shadow-legacy-card cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-legacy-hover animate-fadeIn" onClick={() => router.push(`/feed?type=product&id=${p._id || p.id}&vendorId=${vendorId}`)}>
                                         <img src={p.image_url?.[0] || '/placeholder.svg'} className="w-full h-[180px] object-cover bg-gray-50" alt={p.product_name} />
                                         <div className="p-4">
                                             <div className="text-sm font-semibold text-gray-900 mb-1.5">{p.product_name}</div>
@@ -226,7 +215,7 @@ function VendorProfileContent() {
                     {activeTab === 'content' && (
                         <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
                             {content.length > 0 ? content.map((c, i) => (
-                                <div key={i} className="bg-white rounded-xl overflow-hidden shadow-legacy-card transition-all duration-300 cursor-pointer hover:-translate-y-2 hover:shadow-legacy-hover group" onClick={() => setSelectedVideo(c)}>
+                                <div key={i} className="bg-white rounded-xl overflow-hidden shadow-legacy-card transition-all duration-300 cursor-pointer hover:-translate-y-2 hover:shadow-legacy-hover group" onClick={() => router.push(`/feed?type=content&id=${c.id}&vendorId=${vendorId}`)}>
                                     <div className="relative w-full h-[200px] bg-gray-50 flex items-center justify-center overflow-hidden">
                                         <video src={c.video} className="w-full h-full object-cover" muted loop playsInline onMouseOver={e => e.currentTarget.play()} onMouseOut={e => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}></video>
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col items-center justify-center gap-2 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -252,27 +241,6 @@ function VendorProfileContent() {
 
                 </div>
             </main>
-
-            {selectedProduct && (
-                <ProductModal
-                    onClose={() => setSelectedProduct(null)}
-                    product={selectedProduct}
-                    addToCart={() => { }}
-                />
-            )}
-
-            {selectedVideo && (
-                <VideoModal
-                    video={selectedVideo.video}
-                    caption={selectedVideo.caption}
-                    contentId={selectedVideo.id}
-                    likes={selectedVideo.likes_count || 0}
-                    views={selectedVideo.views || 0}
-                    isLikedByUser={selectedVideo.is_liked_by_user || false}
-                    reviewsCount={selectedVideo.reviews_count || 0}
-                    onClose={() => setSelectedVideo(null)}
-                />
-            )}
         </div>
     );
 }

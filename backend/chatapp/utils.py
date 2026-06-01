@@ -1,5 +1,6 @@
 from channels.db import database_sync_to_async
 from django.db.models import Q, Prefetch, Count, Max
+from django.db.models.functions import Coalesce
 from .models import ConversationModel, MessageModel
 from .serializers import ConversationSerializer, MessageSerializer
 from django.contrib.auth import get_user_model
@@ -22,7 +23,9 @@ def get_all_conversations(user):
             filter=Q(messages__is_read=False) & ~Q(messages__sender=user)
         ),
         last_message_time_db=Max('messages__timestamp')
-    ).order_by('-last_message_time_db')
+    ).order_by(
+        Coalesce('last_message_time_db', 'created_at').desc()
+    )
 
 
     serializer = ConversationSerializer(
@@ -36,16 +39,23 @@ def get_all_conversations(user):
 
 
 @database_sync_to_async
-def store_message(sender, conversation_id, text, file=None):
+def store_message(sender, conversation_id, text, file=None, reply_to_id=None):
     conversation = ConversationModel.objects.get(id=conversation_id)
     message = MessageModel.objects.create(
         conversation=conversation,
         sender=sender,
         text=text,
     )
+    if reply_to_id:
+        try:
+            message.reply_to = MessageModel.objects.get(id=reply_to_id)
+        except MessageModel.DoesNotExist:
+            pass
+            
     if file:
         message.file = file
-        message.save()
+        
+    message.save()
 
     # Determine recipient
     recipient = conversation.vendor if sender == conversation.buyer else conversation.buyer
@@ -70,11 +80,23 @@ def store_message(sender, conversation_id, text, file=None):
             link=f'/chat?vendorId={sender.id}'
         )
 
+    reply_details = None
+    if message.reply_to:
+        reply_details = {
+            "id": message.reply_to.id,
+            "text": message.reply_to.text,
+            "file": message.reply_to.file.url if message.reply_to.file else None,
+            "sender_name": message.reply_to.sender.username,
+            "sender_id": message.reply_to.sender.id,
+        }
+
     return {
+        'id': message.id,
         'text': message.text,
         'sender': message.sender.id,
         'timestamp': message.timestamp.isoformat(),
-        'is_read': message.is_read
+        'is_read': message.is_read,
+        'reply_to_details': reply_details
     }
 
 
