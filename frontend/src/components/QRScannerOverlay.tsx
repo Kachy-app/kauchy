@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import jsQR from "jsqr";
 
 interface QRScannerOverlayProps {
   isOpen: boolean;
@@ -12,15 +13,59 @@ export default function QRScannerOverlay({
   isOpen,
   onClose,
   onScanSuccess,
-  orderData,
 }: QRScannerOverlayProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const scannedRef = useRef(false);
   const [scanState, setScanState] = useState<
     "scanning" | "success" | "error" | "no-camera"
   >("scanning");
   const [cameraReady, setCameraReady] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+
+  const stopCamera = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setCameraReady(false);
+  }, []);
+
+  // Continuously grab frames and decode QR codes with jsQR.
+  const scanLoop = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || scannedRef.current) return;
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth) {
+      if (!canvasRef.current) canvasRef.current = document.createElement("canvas");
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "dontInvert",
+        });
+        if (code && code.data) {
+          scannedRef.current = true;
+          setScanState("success");
+          if (navigator.vibrate) navigator.vibrate(60);
+          const result = code.data;
+          setTimeout(() => onScanSuccess(result), 900);
+          return;
+        }
+      }
+    }
+    rafRef.current = requestAnimationFrame(scanLoop);
+  }, [onScanSuccess]);
 
   const startCamera = useCallback(async () => {
     try {
@@ -34,46 +79,27 @@ export default function QRScannerOverlay({
         videoRef.current.onloadedmetadata = () => {
           videoRef.current?.play();
           setCameraReady(true);
+          rafRef.current = requestAnimationFrame(scanLoop);
         };
       }
     } catch {
       setScanState("no-camera");
     }
-  }, []);
-
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    setCameraReady(false);
-  }, []);
+  }, [scanLoop]);
 
   useEffect(() => {
     if (isOpen) {
+      scannedRef.current = false;
       setScanState("scanning");
       setIsClosing(false);
       startCamera();
-
-      // Simulate a successful scan after 4 seconds (demo only — replace with real QR decode)
-      const timer = setTimeout(() => {
-        setScanState("success");
-        const data = orderData
-          ? JSON.stringify(orderData)
-          : "DEMO_QR_DATA";
-        setTimeout(() => {
-          onScanSuccess(data);
-        }, 1200);
-      }, 4000);
-
       return () => {
-        clearTimeout(timer);
         stopCamera();
       };
     } else {
       stopCamera();
     }
-  }, [isOpen, startCamera, stopCamera, onScanSuccess, orderData]);
+  }, [isOpen, startCamera, stopCamera]);
 
   const handleClose = () => {
     setIsClosing(true);
@@ -87,7 +113,7 @@ export default function QRScannerOverlay({
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-300 ${isClosing ? "opacity-0" : "animate-scannerFadeIn"}`}
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black transition-opacity duration-300 ${isClosing ? "opacity-0" : "animate-scannerFadeIn"}`}
     >
       {/* Camera feed background */}
       <video
@@ -98,12 +124,9 @@ export default function QRScannerOverlay({
         muted
       />
 
-      {/* Dark overlay with cutout via CSS masks */}
-      <div className="absolute inset-0" style={overlayMaskStyle} />
-
       {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-[env(safe-area-inset-top,16px)] pb-4 z-10">
-        <div />
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 pt-[env(safe-area-inset-top,16px)] pb-4 z-20">
+        <span className="text-white font-semibold text-base drop-shadow-lg">Scan QR code</span>
         <button
           onClick={handleClose}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-md text-white text-xl hover:bg-white/20 transition-all active:scale-90"
@@ -114,17 +137,21 @@ export default function QRScannerOverlay({
       </div>
 
       {/* Instruction text */}
-      <div className="absolute top-[18%] sm:top-[15%] left-0 right-0 flex flex-col items-center z-10 pointer-events-none">
+      <div className="absolute top-[16%] left-0 right-0 flex flex-col items-center z-20 pointer-events-none px-6 text-center">
         <p className="text-white/90 text-base sm:text-lg font-medium tracking-wide drop-shadow-lg">
-          Point your camera at a QR code
+          Point your camera at the QR code
         </p>
         <p className="text-white/50 text-xs sm:text-sm mt-1">
-          The code will be scanned automatically
+          It will be scanned automatically
         </p>
       </div>
 
-      {/* Viewfinder */}
-      <div className="relative w-[260px] h-[260px] sm:w-[280px] sm:h-[280px] z-10 animate-viewfinderIn">
+      {/* Viewfinder — the box-shadow creates a Telegram-style dimmed surround
+          with a clear rounded-square cutout in the middle. */}
+      <div
+        className="relative w-[270px] h-[270px] sm:w-[290px] sm:h-[290px] z-10 rounded-[28px] animate-viewfinderIn"
+        style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,0.6)" }}
+      >
         {/* Corner brackets */}
         <Corner position="top-left" state={scanState} />
         <Corner position="top-right" state={scanState} />
@@ -133,7 +160,7 @@ export default function QRScannerOverlay({
 
         {/* Scan line */}
         {scanState === "scanning" && cameraReady && (
-          <div className="absolute left-2 right-2 h-[2px] animate-scanLine z-20">
+          <div className="absolute left-3 right-3 h-[2px] animate-scanLine z-20">
             <div className="w-full h-full bg-gradient-to-r from-transparent via-[#34D399] to-transparent rounded-full shadow-[0_0_12px_2px_rgba(52,211,153,0.5)]" />
           </div>
         )}
@@ -141,7 +168,7 @@ export default function QRScannerOverlay({
         {/* Success overlay */}
         {scanState === "success" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center animate-scannerFadeIn">
-            <div className="absolute inset-0 rounded-2xl bg-[#34D399]/15 animate-scanSuccess" />
+            <div className="absolute inset-0 rounded-[28px] bg-[#34D399]/15 animate-scanSuccess" />
             <div className="w-16 h-16 rounded-full bg-[#34D399] flex items-center justify-center shadow-[0_0_30px_8px_rgba(52,211,153,0.4)] animate-scannerFadeIn">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
@@ -173,12 +200,12 @@ export default function QRScannerOverlay({
       </div>
 
       {/* Bottom hint */}
-      <div className="absolute bottom-[12%] left-0 right-0 flex justify-center z-10 pointer-events-none">
+      <div className="absolute bottom-[12%] left-0 right-0 flex justify-center z-20 pointer-events-none">
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md">
           <div className={`w-2 h-2 rounded-full ${scanState === "scanning" ? "bg-[#34D399] animate-pulse" : scanState === "success" ? "bg-[#34D399]" : "bg-red-400"}`} />
           <span className="text-white/70 text-xs font-medium">
             {scanState === "scanning"
-              ? "Scanning..."
+              ? cameraReady ? "Scanning..." : "Starting camera..."
               : scanState === "success"
                 ? "Captured"
                 : "No camera"}
@@ -210,10 +237,10 @@ function Corner({
   };
 
   const borderClasses: Record<string, string> = {
-    "top-left": "border-t border-l rounded-tl-xl",
-    "top-right": "border-t border-r rounded-tr-xl",
-    "bottom-left": "border-b border-l rounded-bl-xl",
-    "bottom-right": "border-b border-r rounded-br-xl",
+    "top-left": "border-t border-l rounded-tl-[28px]",
+    "top-right": "border-t border-r rounded-tr-[28px]",
+    "bottom-left": "border-b border-l rounded-bl-[28px]",
+    "bottom-right": "border-b border-r rounded-br-[28px]",
   };
 
   return (
@@ -229,24 +256,3 @@ function Corner({
     />
   );
 }
-
-/* ─── Overlay mask style (dark bg with transparent cutout) ─── */
-
-const viewfinderSize = 280;
-const overlayMaskStyle: React.CSSProperties = {
-  background: "rgba(0, 0, 0, 0.65)",
-  maskImage: `
-    radial-gradient(
-      circle at center,
-      transparent ${viewfinderSize / 2 - 20}px,
-      black ${viewfinderSize / 2 + 10}px
-    )
-  `,
-  WebkitMaskImage: `
-    radial-gradient(
-      circle at center,
-      transparent ${viewfinderSize / 2 - 20}px,
-      black ${viewfinderSize / 2 + 10}px
-    )
-  `,
-};

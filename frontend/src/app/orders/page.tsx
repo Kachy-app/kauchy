@@ -15,6 +15,9 @@ function OrdersPageContent() {
     const [scanResult, setScanResult] = useState<string | null>(null);
     const [validationStatus, setValidationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [validationMessage, setValidationMessage] = useState<string | null>(null);
+    const [disputeOpen, setDisputeOpen] = useState(false);
+    const [disputeMessage, setDisputeMessage] = useState('');
+    const [disputeSubmitting, setDisputeSubmitting] = useState(false);
     const sidebarRef = useRef<HTMLDivElement>(null);
 
     const { user } = useAuth();
@@ -126,8 +129,7 @@ function OrdersPageContent() {
         }
     };
 
-    const handleScanSuccess = useCallback(async (data: string) => {
-        setScanResult(data);
+    const handleScanSuccess = useCallback(async (data: string) => {        setScanResult(data);
         setIsScannerOpen(false);
         setValidationStatus('loading');
         setValidationMessage('Validating order...');
@@ -181,8 +183,33 @@ function OrdersPageContent() {
         }
     }, [user, selectedOrder]);
 
+    const handleSubmitDispute = async () => {
+        const text = disputeMessage.trim();
+        if (!text) return;
+        if (!user?.access) { alert('Please log in to raise a dispute.'); return; }
+        setDisputeSubmitting(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dispute/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.access}` },
+                body: JSON.stringify({ message: selectedOrder ? `Order #${selectedOrder.id}: ${text}` : text }),
+            });
+            if (res.ok) {
+                setDisputeOpen(false);
+                setDisputeMessage('');
+                alert('Your dispute has been submitted. Our team will review it shortly.');
+            } else {
+                alert('Failed to submit dispute. Please try again.');
+            }
+        } catch (e) {
+            alert('Network error. Please try again.');
+        } finally {
+            setDisputeSubmitting(false);
+        }
+    };
+
     return (
-        <div className="flex h-[calc(100vh-70px)] overflow-hidden relative lg:grid lg:grid-cols-[320px_1fr] bg-[#f4f6fa]">
+        <div className="flex h-[calc(100vh-70px)] overflow-hidden relative lg:grid lg:grid-cols-[320px_1fr] bg-[#f4f6fa] dark:bg-zinc-950">
 
             {/* Mobile Overlay */}
             {isSidebarOpen && (
@@ -195,31 +222,31 @@ function OrdersPageContent() {
             {/* Sidebar */}
             <div
                 ref={sidebarRef}
-                className={`fixed inset-y-0 left-0 top-[70px] bottom-0 w-[300px] sm:w-[85vw] sm:max-w-[320px] bg-white border-r border-[#e5e7eb] z-50 transition-transform duration-300 lg:relative lg:w-full lg:inset-auto lg:transform-none lg:z-0 lg:flex lg:flex-col lg:h-full ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+                className={`fixed inset-y-0 left-0 top-[70px] bottom-0 w-[300px] sm:w-[85vw] sm:max-w-[320px] bg-white dark:bg-zinc-900 border-r border-[#e5e7eb] dark:border-zinc-800 z-50 transition-transform duration-300 lg:relative lg:w-full lg:inset-auto lg:transform-none lg:z-0 lg:flex lg:flex-col lg:h-full ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
             >
-                <div className="p-4 border-b border-[#e5e7eb] bg-white shrink-0 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-[#1d1d1d]">Orders</h2>
-                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-[#4b4b4b] hover:text-[#1d1d1d]">
+                <div className="p-4 border-b border-[#e5e7eb] dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0 flex justify-between items-center">
+                    <h2 className="text-lg font-semibold text-[#1d1d1d] dark:text-white">Orders</h2>
+                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-[#4b4b4b] dark:text-gray-400 hover:text-[#1d1d1d]">
                         ✕
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                     {loading ? (
-                        <div className="p-4 text-center text-[#4b4b4b]">Loading orders...</div>
+                        <div className="p-4 text-center text-[#4b4b4b] dark:text-gray-400">Loading orders...</div>
                     ) : orders.length === 0 ? (
-                        <div className="p-4 text-center text-[#4b4b4b]">No orders found.</div>
+                        <div className="p-4 text-center text-[#4b4b4b] dark:text-gray-400">No orders found.</div>
                     ) : (
                         orders.map(order => (
                             <div
                                 key={order.id}
-                                className={`p-4 border-b border-gray-100 cursor-pointer transition-colors duration-200 hover:bg-[#f4f6fa] ${selectedOrder?.id === order.id ? 'bg-[#f4f6fa] border-l-[3px] border-l-[#1c6ef2]' : ''}`}
+                                className={`p-4 border-b border-gray-100 dark:border-zinc-800 cursor-pointer transition-colors duration-200 hover:bg-[#f4f6fa] ${selectedOrder?.id === order.id ? 'bg-[#f4f6fa] dark:bg-zinc-950 border-l-[3px] border-l-[#1c6ef2]' : ''}`}
                                 onClick={() => handleOrderClick(order)}
                             >
                                 <div className="flex justify-between mb-1.5">
-                                    <span className="font-semibold text-sm text-[#1d1d1d]">{order.id}</span>
-                                    <span className="text-[11px] text-[#4b4b4b]">{new Date(order.created_at).toLocaleDateString()}</span>
+                                    <span className="font-semibold text-sm text-[#1d1d1d] dark:text-white">{order.id}</span>
+                                    <span className="text-[11px] text-[#4b4b4b] dark:text-gray-400">{new Date(order.created_at).toLocaleDateString()}</span>
                                 </div>
-                                <div className="text-xs text-[#4b4b4b] mb-2 leading-snug">
+                                <div className="text-xs text-[#4b4b4b] dark:text-gray-400 mb-2 leading-snug">
                                     <div className="truncate">Buyer: {order.buyer_username}</div>
                                     <div className="truncate">Vendor: {order.vendor_username}</div>
                                 </div>
@@ -238,12 +265,12 @@ function OrdersPageContent() {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 bg-[#f4f6fa] h-full overflow-hidden flex flex-col w-full relative">
+            <div className="flex-1 bg-[#f4f6fa] dark:bg-zinc-950 h-full overflow-hidden flex flex-col w-full relative">
                 {/* Mobile Sidebar Toggle Button (Visible when sidebar is closed) */}
                 {!isSidebarOpen && (
                     <button
                         onClick={toggleSidebar}
-                        className="absolute top-4 left-4 z-30 p-2 bg-white rounded-md shadow-md lg:hidden text-[#1d1d1d] hover:bg-gray-50 active:scale-95 transition-all"
+                        className="absolute top-4 left-4 z-30 p-2 bg-white dark:bg-zinc-900 rounded-md shadow-md lg:hidden text-[#1d1d1d] dark:text-white hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-95 transition-all"
                         aria-label="Toggle Menu"
                     >
                         ☰
@@ -251,12 +278,12 @@ function OrdersPageContent() {
                 )}
 
                 {selectedOrder ? (
-                    <div className="flex flex-col h-full bg-white pt-16 lg:pt-0"> {/* Adjusted top padding for mobile toggle space */}
+                    <div className="flex flex-col h-full bg-white dark:bg-zinc-900 pt-16 lg:pt-0"> {/* Adjusted top padding for mobile toggle space */}
                         {/* Header */}
-                        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-[#e5e7eb] bg-white shrink-0">
+                        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-[#e5e7eb] dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
                             <div className="flex items-center gap-3">
-                                <button onClick={toggleSidebar} className="lg:hidden text-xl text-[#1d1d1d] mr-2">☰</button>
-                                <h2 className="text-xl font-bold text-[#1d1d1d]">Order Details</h2>
+                                <button onClick={toggleSidebar} className="lg:hidden text-xl text-[#1d1d1d] dark:text-white mr-2">☰</button>
+                                <h2 className="text-xl font-bold text-[#1d1d1d] dark:text-white">Order Details</h2>
                             </div>
                             <span
                                 className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase ${selectedOrder.status === 'pending' ? 'bg-[#fff3cd] text-[#856404]' :
@@ -272,31 +299,31 @@ function OrdersPageContent() {
                         <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col items-center gap-6 sm:gap-8">
 
                             {/* Order Info Card */}
-                            <div className="w-full max-w-[600px] bg-[#f4f6fa] p-5 rounded-xl border border-[#e5e7eb]">
-                                <h3 className="text-base font-semibold text-[#1d1d1d] border-b border-gray-300 pb-2 mb-4">Order Info</h3>
+                            <div className="w-full max-w-[600px] bg-[#f4f6fa] dark:bg-zinc-950 p-5 rounded-xl border border-[#e5e7eb] dark:border-zinc-800">
+                                <h3 className="text-base font-semibold text-[#1d1d1d] dark:text-white border-b border-gray-300 dark:border-zinc-700 pb-2 mb-4">Order Info</h3>
                                 <div className="flex justify-between mb-3 text-sm">
-                                    <span className="font-medium text-[#4b4b4b]">Order ID</span>
-                                    <span className="font-semibold text-[#1d1d1d]">{selectedOrder.id}</span>
+                                    <span className="font-medium text-[#4b4b4b] dark:text-gray-400">Order ID</span>
+                                    <span className="font-semibold text-[#1d1d1d] dark:text-white">{selectedOrder.id}</span>
                                 </div>
                                 <div className="flex justify-between mb-3 text-sm">
-                                    <span className="font-medium text-[#4b4b4b]">Date</span>
-                                    <span className="font-semibold text-[#1d1d1d]">{new Date(selectedOrder.created_at).toLocaleString()}</span>
+                                    <span className="font-medium text-[#4b4b4b] dark:text-gray-400">Date</span>
+                                    <span className="font-semibold text-[#1d1d1d] dark:text-white">{new Date(selectedOrder.created_at).toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between mb-3 text-sm">
-                                    <span className="font-medium text-[#4b4b4b]">Total Amount</span>
-                                    <span className="font-semibold text-[#1d1d1d]">₦{selectedOrder.amount}</span>
+                                    <span className="font-medium text-[#4b4b4b] dark:text-gray-400">Total Amount</span>
+                                    <span className="font-semibold text-[#1d1d1d] dark:text-white">₦{selectedOrder.amount}</span>
                                 </div>
                             </div>
 
                             {/* Items Card */}
                             {selectedOrder.items && selectedOrder.items.length > 0 && (
-                                <div className="w-full max-w-[600px] bg-[#f4f6fa] p-5 rounded-xl border border-[#e5e7eb]">
-                                    <h3 className="text-base font-semibold text-[#1d1d1d] border-b border-gray-300 pb-2 mb-4">Items Ordered</h3>
+                                <div className="w-full max-w-[600px] bg-[#f4f6fa] dark:bg-zinc-950 p-5 rounded-xl border border-[#e5e7eb] dark:border-zinc-800">
+                                    <h3 className="text-base font-semibold text-[#1d1d1d] dark:text-white border-b border-gray-300 dark:border-zinc-700 pb-2 mb-4">Items Ordered</h3>
                                     <div className="space-y-3">
                                         {selectedOrder.items.map((item: any) => (
                                             <div key={item.id} className="flex justify-between text-sm">
                                                 <div className="flex gap-2 items-center">
-                                                    <span className="font-medium text-[#1d1d1d]">{item.quantity}x</span>
+                                                    <span className="font-medium text-[#1d1d1d] dark:text-white">{item.quantity}x</span>
                                                     <Link 
                                                         href={`/feed?type=product&id=${item.product}`} 
                                                         className="text-[#1c6ef2] hover:underline"
@@ -304,7 +331,7 @@ function OrdersPageContent() {
                                                         {item.product_name}
                                                     </Link>
                                                 </div>
-                                                <span className="font-semibold text-[#1d1d1d]">₦{item.price}</span>
+                                                <span className="font-semibold text-[#1d1d1d] dark:text-white">₦{item.price}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -312,24 +339,24 @@ function OrdersPageContent() {
                             )}
 
                             {/* Parties Card */}
-                            <div className="w-full max-w-[600px] bg-[#f4f6fa] p-5 rounded-xl border border-[#e5e7eb]">
-                                <h3 className="text-base font-semibold text-[#1d1d1d] border-b border-gray-300 pb-2 mb-4">Parties</h3>
+                            <div className="w-full max-w-[600px] bg-[#f4f6fa] dark:bg-zinc-950 p-5 rounded-xl border border-[#e5e7eb] dark:border-zinc-800">
+                                <h3 className="text-base font-semibold text-[#1d1d1d] dark:text-white border-b border-gray-300 dark:border-zinc-700 pb-2 mb-4">Parties</h3>
                                 <div className="flex justify-between mb-3 text-sm">
-                                    <span className="font-medium text-[#4b4b4b]">Buyer</span>
-                                    <span className="font-semibold text-[#1d1d1d]">{selectedOrder.buyer_username}</span>
+                                    <span className="font-medium text-[#4b4b4b] dark:text-gray-400">Buyer</span>
+                                    <span className="font-semibold text-[#1d1d1d] dark:text-white">{selectedOrder.buyer_username}</span>
                                 </div>
                                 <div className="flex justify-between mb-3 text-sm">
-                                    <span className="font-medium text-[#4b4b4b]">Vendor</span>
-                                    <span className="font-semibold text-[#1d1d1d]">{selectedOrder.vendor_username}</span>
+                                    <span className="font-medium text-[#4b4b4b] dark:text-gray-400">Vendor</span>
+                                    <span className="font-semibold text-[#1d1d1d] dark:text-white">{selectedOrder.vendor_username}</span>
                                 </div>
                             </div>
 
                             {/* QR/Camera Section */}
                             <div className="flex flex-col items-center w-full max-w-[400px]">
-                                <div className="flex bg-[#f4f6fa] p-1 rounded-lg mb-4 w-full justify-center gap-1 border border-[#e5e7eb]">
+                                <div className="flex bg-[#f4f6fa] dark:bg-zinc-950 p-1 rounded-lg mb-4 w-full justify-center gap-1 border border-[#e5e7eb] dark:border-zinc-800">
                                     {(!currentUserName || selectedOrder.buyer_username !== currentUserName) && (
                                         <button
-                                            className={`px-6 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'qrcode' ? 'bg-white text-[#1c6ef2] shadow-sm' : 'text-[#4b4b4b] hover:bg-white/50'}`}
+                                            className={`px-6 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'qrcode' ? 'bg-white dark:bg-zinc-900 text-[#1c6ef2] shadow-sm' : 'text-[#4b4b4b] dark:text-gray-400 hover:bg-white/50'}`}
                                             onClick={() => setActiveTab('qrcode')}
                                         >
                                             QR Code
@@ -337,7 +364,7 @@ function OrdersPageContent() {
                                     )}
                                     {(!currentUserName || selectedOrder.vendor_username !== currentUserName) && (
                                         <button
-                                            className={`px-6 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'camera' ? 'bg-white text-[#1c6ef2] shadow-sm' : 'text-[#4b4b4b] hover:bg-white/50'}`}
+                                            className={`px-6 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'camera' ? 'bg-white dark:bg-zinc-900 text-[#1c6ef2] shadow-sm' : 'text-[#4b4b4b] dark:text-gray-400 hover:bg-white/50'}`}
                                             onClick={() => setActiveTab('camera')}
                                         >
                                             Scan Camera
@@ -345,25 +372,28 @@ function OrdersPageContent() {
                                     )}
                                 </div>
 
-                                <div className="w-[300px] h-[300px] bg-[#f4f6fa] rounded-2xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center relative p-5">
+                                <div className="w-[300px] h-[300px] bg-[#f4f6fa] dark:bg-zinc-950 rounded-2xl border-2 border-dashed border-gray-300 dark:border-zinc-700 flex flex-col items-center justify-center relative p-5">
                                     {activeTab === 'qrcode' ? (
                                         <div className="flex flex-col items-center animate-fadeIn w-full h-full">
-                                            <img
-                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: selectedOrder.id, status: selectedOrder.status }))}`}
-                                                alt="QR Code"
-                                                className="w-full h-full object-contain mix-blend-multiply"
-                                            />
-                                            <p className="text-xs text-[#4b4b4b] mt-3 text-center">Scan this code to verify</p>
+                                            {/* QR must stay on a white background to remain scannable in dark mode */}
+                                            <div className="flex-1 w-full bg-white rounded-xl p-3 flex items-center justify-center">
+                                                <img
+                                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: selectedOrder.id, status: selectedOrder.status }))}`}
+                                                    alt="QR Code"
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-[#4b4b4b] dark:text-gray-400 mt-3 text-center">Scan this code to verify</p>
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col items-center gap-4 text-[#4b4b4b] animate-fadeIn w-full h-full justify-center">
+                                        <div className="flex flex-col items-center gap-4 text-[#4b4b4b] dark:text-gray-400 animate-fadeIn w-full h-full justify-center">
                                             {scanResult ? (
                                                 <>
                                                     {validationStatus === 'loading' ? (
                                                         <>
-                                                            <div className="w-14 h-14 border-4 border-gray-200 border-t-[#1c6ef2] rounded-full animate-spin mb-2"></div>
-                                                            <p className="text-sm font-semibold text-[#1d1d1d]">Validating...</p>
-                                                            <p className="text-xs text-[#4b4b4b] text-center mt-1">{validationMessage}</p>
+                                                            <div className="w-14 h-14 border-4 border-gray-200 dark:border-zinc-800 border-t-[#1c6ef2] rounded-full animate-spin mb-2"></div>
+                                                            <p className="text-sm font-semibold text-[#1d1d1d] dark:text-white">Validating...</p>
+                                                            <p className="text-xs text-[#4b4b4b] dark:text-gray-400 text-center mt-1">{validationMessage}</p>
                                                         </>
                                                     ) : validationStatus === 'success' ? (
                                                         <>
@@ -373,7 +403,7 @@ function OrdersPageContent() {
                                                                 </svg>
                                                             </div>
                                                             <p className="text-sm font-semibold text-[#155724]">Validation Successful!</p>
-                                                            <p className="text-xs text-[#4b4b4b] text-center max-w-[220px] mt-1">{validationMessage}</p>
+                                                            <p className="text-xs text-[#4b4b4b] dark:text-gray-400 text-center max-w-[220px] mt-1">{validationMessage}</p>
                                                             <button
                                                                 onClick={() => { setScanResult(null); setValidationStatus('idle'); setIsScannerOpen(true); }}
                                                                 className="text-[#1c6ef2] text-xs font-semibold hover:underline mt-4"
@@ -383,11 +413,11 @@ function OrdersPageContent() {
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-2">
+                                                            <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-2">
                                                                 <span className="text-3xl text-red-500">✕</span>
                                                             </div>
                                                             <p className="text-sm font-semibold text-red-600">Validation Failed</p>
-                                                            <p className="text-xs text-[#4b4b4b] text-center max-w-[220px] mt-1">{validationMessage}</p>
+                                                            <p className="text-xs text-[#4b4b4b] dark:text-gray-400 text-center max-w-[220px] mt-1">{validationMessage}</p>
                                                             <button
                                                                 onClick={() => { setScanResult(null); setValidationStatus('idle'); setIsScannerOpen(true); }}
                                                                 className="text-[#1c6ef2] text-xs font-semibold hover:underline mt-4"
@@ -409,8 +439,8 @@ function OrdersPageContent() {
                                                             <line x1="14" y1="22" x2="22" y2="22" />
                                                         </svg>
                                                     </div>
-                                                    <p className="text-sm font-semibold text-[#1d1d1d]">Scan QR Code</p>
-                                                    <p className="text-xs text-[#4b4b4b] text-center">Open the scanner to verify this order</p>
+                                                    <p className="text-sm font-semibold text-[#1d1d1d] dark:text-white">Scan QR Code</p>
+                                                    <p className="text-xs text-[#4b4b4b] dark:text-gray-400 text-center">Open the scanner to verify this order</p>
                                                     <button
                                                         onClick={() => setIsScannerOpen(true)}
                                                         className="bg-[#1c6ef2] text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-[#1c6ef2]/25 transition-all active:scale-95 flex items-center gap-2"
@@ -428,8 +458,8 @@ function OrdersPageContent() {
 
                                 {/* Vendor Respond Buttons */}
                                 {currentUserName && selectedOrder.vendor_username === currentUserName && selectedOrder.status === 'pending' && (
-                                    <div className="flex flex-col items-center w-full max-w-[400px] mt-6 gap-3 pt-6 border-t border-gray-200">
-                                        <p className="text-sm text-gray-600 mb-2 font-medium">Respond to this Order:</p>
+                                    <div className="flex flex-col items-center w-full max-w-[400px] mt-6 gap-3 pt-6 border-t border-gray-200 dark:border-zinc-800">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Respond to this Order:</p>
                                         <button
                                             onClick={() => handleVendorResponse(selectedOrder.id, 'accept')}
                                             className="w-full bg-[#1c6ef2] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-[#1c6ef2]/25 transition-all active:scale-95 flex items-center justify-center gap-2"
@@ -445,7 +475,7 @@ function OrdersPageContent() {
                                                     handleVendorResponse(selectedOrder.id, 'reject');
                                                 }
                                             }}
-                                            className="w-full bg-white border border-red-200 text-red-600 px-6 py-3 rounded-xl text-sm font-semibold hover:bg-red-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                            className="w-full bg-white dark:bg-zinc-900 border border-red-200 text-red-600 px-6 py-3 rounded-xl text-sm font-semibold hover:bg-red-50 transition-all active:scale-95 flex items-center justify-center gap-2"
                                         >
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -455,18 +485,69 @@ function OrdersPageContent() {
                                         </button>
                                     </div>
                                 )}
+
+                                {/* Raise a dispute */}
+                                <div className="w-full max-w-[400px] mt-6 pt-6 border-t border-gray-200 dark:border-zinc-800 flex flex-col items-center">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Having an issue with this order?</p>
+                                    <button
+                                        onClick={() => { setDisputeMessage(''); setDisputeOpen(true); }}
+                                        className="flex items-center gap-2 text-sm font-semibold text-red-600 hover:text-red-700 transition-colors"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                            <line x1="12" y1="9" x2="12" y2="13" />
+                                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                                        </svg>
+                                        Raise a Dispute
+                                    </button>
+                                </div>
                             </div>
 
                         </div>
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-[#4b4b4b]">
-                        <button onClick={toggleSidebar} className="lg:hidden absolute top-4 left-4 p-2 bg-white rounded-md shadow-sm z-10 text-xl">☰</button>
+                    <div className="flex flex-col items-center justify-center h-full text-[#4b4b4b] dark:text-gray-400">
+                        <button onClick={toggleSidebar} className="lg:hidden absolute top-4 left-4 p-2 bg-white dark:bg-zinc-900 rounded-md shadow-sm z-10 text-xl">☰</button>
                         <div className="text-6xl mb-4">📦</div>
                         <p className="text-lg">Select an order to view details</p>
                     </div>
                 )}
             </div>
+
+            {/* Dispute Modal */}
+            {disputeOpen && (
+                <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50" onClick={() => setDisputeOpen(false)} />
+                    <div className="relative z-10 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fadeIn">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Raise a Dispute</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            {selectedOrder ? `Order #${selectedOrder.id} — describe the issue below.` : 'Describe your issue and our team will review it.'}
+                        </p>
+                        <textarea
+                            value={disputeMessage}
+                            onChange={(e) => setDisputeMessage(e.target.value)}
+                            rows={4}
+                            placeholder="Describe the issue with this order..."
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg text-sm text-gray-900 dark:text-white bg-white dark:bg-zinc-800 dark:placeholder-gray-500 focus:outline-none focus:border-[#1c6ef2] resize-none"
+                        />
+                        <div className="flex gap-3 mt-4">
+                            <button
+                                onClick={() => setDisputeOpen(false)}
+                                className="flex-1 py-2.5 rounded-lg bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSubmitDispute}
+                                disabled={disputeSubmitting || !disputeMessage.trim()}
+                                className="flex-1 py-2.5 rounded-lg bg-[#1c6ef2] text-white text-sm font-semibold disabled:opacity-50 hover:bg-blue-700 transition-colors"
+                            >
+                                {disputeSubmitting ? 'Submitting...' : 'Submit Dispute'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* QR Scanner Overlay */}
             <QRScannerOverlay
