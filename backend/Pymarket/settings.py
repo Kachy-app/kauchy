@@ -64,7 +64,8 @@ INSTALLED_APPS = [
     'orders',
     'notification',
     'waitlist',
-    'dispute'
+    'dispute',
+    'kauch'
 ]
 
 MIDDLEWARE = [
