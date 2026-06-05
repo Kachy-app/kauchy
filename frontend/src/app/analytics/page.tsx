@@ -143,41 +143,41 @@ export default function AnalyticsPage() {
     if (!user) return null; // or loading spinner
 
     return (
-        <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">Analytics Dashboard</h1>
+        <div className="p-4 sm:p-8 bg-gray-50 dark:bg-zinc-950 min-h-screen">
+            <h1 className="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100">Analytics Dashboard</h1>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-                    <h3 className="text-gray-500 font-medium">Total Revenue</h3>
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow hover:shadow-lg transition">
+                    <h3 className="text-gray-500 dark:text-gray-400 font-medium">Total Revenue</h3>
                     <p className="text-3xl font-bold text-blue-600">${stats.total_revenue}</p>
                     <span className="text-green-500 text-sm">↑ 12% from last month</span>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-                    <h3 className="text-gray-500 font-medium">Items Sold</h3>
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow hover:shadow-lg transition">
+                    <h3 className="text-gray-500 dark:text-gray-400 font-medium">Items Sold</h3>
                     <p className="text-3xl font-bold text-blue-600">{stats.total_sales_quantity}</p>
                     <span className="text-green-500 text-sm">↑ 5% from last month</span>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-                    <h3 className="text-gray-500 font-medium">Profile Views</h3>
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow hover:shadow-lg transition">
+                    <h3 className="text-gray-500 dark:text-gray-400 font-medium">Profile Views</h3>
                     <p className="text-3xl font-bold text-blue-600">{stats.total_views}</p>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-                    <h3 className="text-gray-500 font-medium">Rating</h3>
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow hover:shadow-lg transition">
+                    <h3 className="text-gray-500 dark:text-gray-400 font-medium">Rating</h3>
                     <p className="text-3xl font-bold text-yellow-500">★ {stats.rating ? parseFloat(stats.rating).toFixed(1) : "N/A"}</p>
                 </div>
             </div>
 
             {/* Charts Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="font-bold text-lg mb-4 text-gray-700">Sales Overview</h3>
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow">
+                    <h3 className="font-bold text-lg mb-4 text-gray-700 dark:text-gray-300">Sales Overview</h3>
                     <div className="flex justify-center">
                         <canvas ref={salesChartRef} width={400} height={250} className="w-full h-auto"></canvas>
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="font-bold text-lg mb-4 text-gray-700">Category Dist.</h3>
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow">
+                    <h3 className="font-bold text-lg mb-4 text-gray-700 dark:text-gray-300">Category Dist.</h3>
                     <div className="flex justify-center">
                         <canvas ref={categoryChartRef} width={400} height={250} className="w-full h-auto"></canvas>
                     </div>
@@ -186,11 +186,11 @@ export default function AnalyticsPage() {
 
             {/* Lists Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="font-bold text-lg mb-4 text-gray-700">Top Products</h3>
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow">
+                    <h3 className="font-bold text-lg mb-4 text-gray-700 dark:text-gray-300">Top Products</h3>
                     <div className="overflow-auto max-h-60">
                         <table className="w-full text-left">
-                            <thead className="bg-gray-100 font-medium text-gray-600">
+                            <thead className="bg-gray-100 dark:bg-zinc-800 font-medium text-gray-600 dark:text-gray-400">
                                 <tr>
                                     <th className="p-2">Name</th>
                                     <th className="p-2">Sold</th>
@@ -199,7 +199,7 @@ export default function AnalyticsPage() {
                             </thead>
                             <tbody>
                                 {topProducts.map((p: any, i) => (
-                                    <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
+                                    <tr key={i} className="border-b last:border-0 hover:bg-gray-50 dark:hover:bg-zinc-800">
                                         <td className="p-2 truncate max-w-[150px]">{p.name || p.product_name}</td>
                                         <td className="p-2">{p.total_sold}</td>
                                         <td className="p-2 text-right">${p.total_revenue}</td>
@@ -207,7 +207,7 @@ export default function AnalyticsPage() {
                                 ))}
                                 {topProducts.length === 0 && (
                                     <tr>
-                                        <td colSpan={3} className="p-4 text-center text-gray-500">No data found</td>
+                                        <td colSpan={3} className="p-4 text-center text-gray-500 dark:text-gray-400">No data found</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -215,20 +215,20 @@ export default function AnalyticsPage() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="font-bold text-lg mb-4 text-gray-700">Recent Orders</h3>
+                <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow">
+                    <h3 className="font-bold text-lg mb-4 text-gray-700 dark:text-gray-300">Recent Orders</h3>
                     <div className="overflow-auto max-h-60">
                         {recentOrders.map((order, i) => (
                             <div key={i} className="flex justify-between items-center py-2 border-b last:border-0">
                                 <div>
-                                    <p className="font-medium text-gray-800">{order.customerName}</p>
-                                    <p className="text-xs text-gray-500">{order.date} • {order.id}</p>
+                                    <p className="font-medium text-gray-800 dark:text-gray-100">{order.customerName}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{order.date} • {order.id}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-gray-800">${order.amount}</p>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full ${order.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                                    <p className="font-bold text-gray-800 dark:text-gray-100">${order.amount}</p>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${order.status === 'Completed' ? 'bg-green-100 dark:bg-green-900/20 text-green-700' :
                                         order.status === 'Processing' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-yellow-100 text-yellow-700'
+                                            'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700'
                                         }`}>{order.status}</span>
                                 </div>
                             </div>

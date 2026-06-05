@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Tailwind v4: make the `dark:` variant respond to a `.dark` class (or any
+   ancestor with it) instead of the OS `prefers-color-scheme`. This is what
+   makes the next-themes toggle and our per-page forced-dark wrappers work. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 
 :root {
   --primary: #1c6ef2;
@@ -25,6 +30,12 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+/* Dark mode base (driven by the `.dark` class on <html> via next-themes). */
+.dark body {
+  background: #09090b;
+  color: #ededed;
 }
 
 /* Hide scrollbar for horizontal sections */
