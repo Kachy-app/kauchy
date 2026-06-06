@@ -266,61 +266,73 @@ export default function KauchProfile() {
     );
   }
 
-  return (
-    <div className="bg-[#f4f6fa] dark:bg-zinc-950 min-h-[calc(100vh-70px)] pb-20 pt-10">
-      <div className="max-w-2xl mx-auto px-4 sm:px-0">
-
-        {/* Navigation & Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => router.back()}
-            className="p-2 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-full transition-colors"
-          >
-            <ArrowLeft size={24} className="text-gray-900 dark:text-white" />
-          </button>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Kauch Profile</h1>
+  // Shared profile card — stacks on top on mobile, lives in the sidebar on desktop.
+  const profileCard = (
+    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800 p-8 sm:p-10">
+      <div className="flex flex-col items-center text-center gap-5">
+        <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-800 ring-4 ring-gray-100 dark:ring-zinc-800 shrink-0">
+          <img src={kauch.avatar_url || '/placeholder.svg'} alt={kauch.name} className="w-full h-full object-cover" />
         </div>
+        <div className="w-full">
+          <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">{kauch.name}</h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 leading-relaxed max-w-md mx-auto">
+            {kauch.description?.trim() || 'Discover our latest drops and shop the products tagged in every post.'}
+          </p>
 
-        {/* Profile Card */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6 mb-8">
-          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-700 ring-4 ring-gray-50 shrink-0">
-              <img src={kauch.avatar_url || '/placeholder.svg'} alt={kauch.name} className="w-full h-full object-cover" />
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-white">
+              <Users size={18} className="text-blue-600" />
+              <span>{kauch.followers_count.toLocaleString()} <span className="text-gray-500 dark:text-gray-400 font-normal">Followers</span></span>
             </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">{kauch.name}</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 leading-relaxed max-w-md">{kauch.description}</p>
 
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-white">
-                  <Users size={18} className="text-blue-600" />
-                  <span>{kauch.followers_count.toLocaleString()} <span className="text-gray-500 dark:text-gray-400 font-normal">Followers</span></span>
-                </div>
-
-                <button
-                  onClick={handleFollowToggle}
-                  className={`px-6 py-2 rounded-full font-bold text-sm transition-all ${
-                    kauch.is_following
-                      ? 'bg-gray-200 dark:bg-zinc-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-zinc-600'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
-                  }`}
-                >
-                  {kauch.is_following ? 'Following' : 'Follow Kauch'}
-                </button>
-              </div>
-            </div>
+            <button
+              onClick={handleFollowToggle}
+              className={`px-6 py-2 rounded-full font-bold text-sm transition-all ${
+                kauch.is_following
+                  ? 'bg-gray-200 dark:bg-zinc-800 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-zinc-700'
+                  : 'bg-amber-400 text-white hover:bg-amber-500 shadow-md'
+              }`}
+            >
+              {kauch.is_following ? 'Following' : 'Follow'}
+            </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
 
-        {/* Posts Feed */}
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 px-2 sm:px-0 border-b border-gray-200 dark:border-zinc-800 pb-2">Posts</h3>
+  return (
+    <div className="bg-[#f4f6fa] dark:bg-zinc-950 min-h-[calc(100vh-70px)] pb-20">
+
+      {/* Sticky top bar */}
+      <div className="sticky top-0 z-10 bg-[#f4f6fa]/85 dark:bg-zinc-950/85 backdrop-blur border-b border-gray-200 dark:border-zinc-800">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-full transition-colors"
+          >
+            <ArrowLeft size={22} className="text-gray-900 dark:text-white" />
+          </button>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">{kauch.name}</h1>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 pt-6">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6 lg:items-start">
+
+          {/* Main column — posts feed */}
+          <div className="min-w-0">
+            {/* Profile card stacks here on mobile; moves to the sidebar on desktop */}
+            <div className="lg:hidden mb-6">{profileCard}</div>
+
+            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4 px-1 border-b border-gray-200 dark:border-zinc-800 pb-2">Posts</h3>
 
         {posts.length === 0 ? (
           <p className="text-gray-500 dark:text-gray-400 text-sm px-2">No posts yet.</p>
         ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {posts.map((post) => (
-            <div key={post.id} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden transition-all hover:shadow-md">
+            <div key={post.id} className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 overflow-hidden transition-colors hover:border-gray-300 dark:hover:border-zinc-700">
 
               <div className="p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -440,8 +452,15 @@ export default function KauchProfile() {
           ))}
         </div>
         )}
+          </div>{/* /main column */}
 
-      </div>
+          {/* Sidebar — desktop only, sticky beneath the top bar */}
+          <aside className="hidden lg:block lg:sticky lg:top-[76px]">
+            {profileCard}
+          </aside>
+
+        </div>{/* /grid */}
+      </div>{/* /container */}
     </div>
   );
 }

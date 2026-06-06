@@ -319,7 +319,7 @@ function FeedContent() {
 
             {/* Sidebar Overlay */}
             <div
-                className={`fixed inset-0 bg-black/60 z-40 transition-opacity duration-300 ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                className={`fixed inset-0 bg-black/60 z-[110] transition-opacity duration-300 ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => setSidebarOpen(false)}
             />
 
@@ -331,6 +331,7 @@ function FeedContent() {
                     type={activeItem.type}
                     item={activeItem.item}
                     addToCart={addToCart}
+                    commentsOnly
                 />
             )}
         </div>

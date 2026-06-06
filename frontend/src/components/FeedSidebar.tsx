@@ -11,6 +11,8 @@ interface FeedSidebarProps {
     type: 'product' | 'content' | 'kauch';
     item: any;
     addToCart: (product: any, quantity: number) => void;
+    // When true, render only the comments section (used by the homepage feed).
+    commentsOnly?: boolean;
 }
 
 function timeAgo(dateStr: string) {
@@ -45,7 +47,7 @@ function StarRating({ rating, onRate, interactive = false, size = 'text-base' }:
     );
 }
 
-export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: FeedSidebarProps) {
+export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, commentsOnly = false }: FeedSidebarProps) {
     const { showToast } = useToast();
     const { user } = useAuth();
     const router = useRouter();
@@ -362,10 +364,10 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: 
 
     return (
         <div className="dark contents">
-        <div className={`fixed inset-y-0 right-0 z-50 w-[92vw] sm:w-[420px] bg-white dark:bg-zinc-900 shadow-[-10px_0_30px_rgba(0,0,0,0.15)] transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
+        <div className={`fixed inset-y-0 right-0 z-[120] w-[92vw] sm:w-[420px] bg-white dark:bg-zinc-900 shadow-[-10px_0_30px_rgba(0,0,0,0.15)] transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
             {/* Header */}
             <div className="flex items-center justify-between p-4 sm:p-4 border-b border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-10">
-                <h2 className="text-xl sm:text-lg font-bold text-gray-900 dark:text-white capitalize">{type === 'product' ? 'Product Details' : type === 'kauch' ? 'Post Details' : 'Content Details'}</h2>
+                <h2 className="text-xl sm:text-lg font-bold text-gray-900 dark:text-white capitalize">{commentsOnly ? 'Comments' : type === 'product' ? 'Product Details' : type === 'kauch' ? 'Post Details' : 'Content Details'}</h2>
                 <button onClick={onClose} className="p-2.5 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-full text-gray-600 dark:text-gray-400 transition-colors">
                     <X size={22} />
                 </button>
@@ -375,7 +377,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-4 flex flex-col gap-5">
                 
                 {/* Product specific info */}
-                {type === 'product' && (
+                {!commentsOnly && type === 'product' && (
                     <>
                         <div>
                             <h1 className="text-2xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight mb-2">{item.product_name}</h1>
@@ -401,7 +403,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: 
                 )}
 
                 {/* Content / Kauch post specific info */}
-                {(type === 'content' || type === 'kauch') && (
+                {!commentsOnly && (type === 'content' || type === 'kauch') && (
                     <div className="bg-gray-50 dark:bg-zinc-800 p-4 rounded-lg border border-gray-100 dark:border-zinc-800">
                         <p className="text-base sm:text-sm text-gray-800 dark:text-gray-100 leading-relaxed font-medium">{item.caption || (type === 'kauch' ? 'Untitled Post' : 'Untitled Video')}</p>
                         <div className="flex gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-zinc-800">
@@ -412,6 +414,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: 
                 )}
 
                 {/* Vendor Card */}
+                {!commentsOnly && (
                 <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 p-4 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -448,15 +451,16 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: 
                         </div>
                     </div>
                 </div>
+                )}
 
                 {/* Reviews / Comments Section */}
-                <div className="flex flex-col gap-4">
+                <div className={`flex flex-col gap-4 ${commentsOnly ? 'flex-1 min-h-0' : ''}`}>
                     <h3 className="text-base sm:text-sm font-semibold text-gray-900 dark:text-white flex items-center justify-between">
                         <span>{type === 'product' ? 'Reviews' : 'Comments'} ({totalReviews})</span>
                         {type === 'product' && <StarRating rating={Math.round(item.rating || 0)} size="text-sm" />}
                     </h3>
 
-                    <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className={`flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar ${commentsOnly ? 'flex-1 min-h-0' : 'max-h-[300px]'}`}>
                         {loadingReviews ? (
                             <div className="text-center py-4 text-base sm:text-sm text-gray-500 dark:text-gray-400">Loading...</div>
                         ) : reviews.length === 0 ? (
@@ -527,6 +531,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: 
             </div>
 
             {/* Footer Actions */}
+            {!commentsOnly && (
             <div className="p-4 border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col gap-3 shrink-0">
                 <div className="flex items-center gap-3">
                     <button
@@ -576,6 +581,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart }: 
                     </button>
                 )}
             </div>
+            )}
         </div>
         </div>
     );
