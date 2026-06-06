@@ -10,6 +10,27 @@ def detect_media_type(uploaded_file):
     return "image"
 
 
+def cloudinary_video_delivery(url):
+    """Return a browser-compatible delivery URL for a Cloudinary-hosted video.
+
+    iPhones record video in HEVC (H.265) by default. Apple devices decode it fine,
+    but desktop Chrome/Firefox cannot decode the HEVC video track (blank video,
+    audio only) even though they decode the AAC audio. Injecting ``f_auto,q_auto``
+    lets Cloudinary transcode and deliver H.264 to those browsers automatically,
+    while still serving HEVC/VP9 where supported. Applies to existing uploads too,
+    since it only rewrites the delivery URL.
+    """
+    if not url or "/video/upload/" not in url:
+        return url
+
+    head, sep, tail = url.partition("/video/upload/")
+    # Skip if a transformation segment is already present (avoid double-applying).
+    first_segment = tail.split("/", 1)[0]
+    if "f_auto" in first_segment:
+        return url
+    return f"{head}{sep}f_auto,q_auto/{tail}"
+
+
 def upload_to_cloudinary(uploaded_file, folder, resource_type="image"):
     """Upload a Django UploadedFile to Cloudinary and return its secure URL.
 

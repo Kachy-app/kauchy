@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import KauchModel, PostModel, PostComment
+from .utils import cloudinary_video_delivery
 
 
 class KauchSerializer(serializers.ModelSerializer):
@@ -42,6 +43,7 @@ class PostSerializer(serializers.ModelSerializer):
     kauch = KauchMiniSerializer(read_only=True)
     tagged_products = TaggedProductSerializer(many=True, read_only=True)
     is_liked_by_user = serializers.SerializerMethodField()
+    media_url = serializers.SerializerMethodField()
 
     class Meta:
         model = PostModel
@@ -50,6 +52,13 @@ class PostSerializer(serializers.ModelSerializer):
             'tagged_products', 'likes_count', 'comments_count',
             'is_liked_by_user', 'created_at',
         ]
+
+    def get_media_url(self, obj):
+        # Force a desktop-decodable codec for videos (HEVC iPhone uploads
+        # otherwise render blank on desktop Chrome/Firefox).
+        if obj.media_type == 'video':
+            return cloudinary_video_delivery(obj.media_url)
+        return obj.media_url
 
     def get_is_liked_by_user(self, obj):
         request = self.context.get('request')
