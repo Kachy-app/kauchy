@@ -28,6 +28,11 @@ class CustomUserModel(AbstractUser):
     bio = models.TextField(null=True, blank=True)
     online = models.BooleanField(default=False)
     last_seen = models.DateTimeField(auto_now=True)
+    # False until a social (Google) sign-up completes the fields Google can't
+    # provide (phone, institute, role). Normal email/password signups set this
+    # True at creation. Kept separate from is_active so JWT auth still works
+    # while the profile is incomplete.
+    profile_completed = models.BooleanField(default=False)
     
 
 

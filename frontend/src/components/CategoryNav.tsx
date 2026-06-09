@@ -42,7 +42,7 @@ export default function CategoryNav({ categories, currentCategory, onSelectCateg
               >
                 {details.icon}
               </div>
-              <span className={`text-sm font-medium transition-colors duration-300 ${isActive ? 'text-gray-900 font-bold' : 'text-gray-600 group-hover:text-gray-900'}`}>
+              <span className={`text-sm font-medium transition-colors duration-300 ${isActive ? 'text-gray-900 dark:text-white font-bold' : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'}`}>
                 {cat.label}
               </span>
             </button>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useAuthGate } from '../context/AuthGateContext';
 
 interface Product {
     _id?: string;
@@ -76,6 +77,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
     const [quantity, setQuantity] = useState(1);
     const { showToast } = useToast();
     const { user } = useAuth();
+    const { requireAuth } = useAuthGate();
 
     // Like state
     const [liked, setLiked] = useState(false);
@@ -132,10 +134,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
     }
 
     async function handleLikeToggle() {
-        if (!user) {
-            showToast('Please login to like products', 'error');
-            return;
-        }
+        if (!requireAuth('like products')) return;
         if (likeLoading || !productId) return;
         setLikeLoading(true);
 
@@ -163,10 +162,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
 
     async function handleSubmitReview(e: React.FormEvent) {
         e.preventDefault();
-        if (!user) {
-            showToast('Please login to write a review', 'error');
-            return;
-        }
+        if (!requireAuth('write a review')) return;
         if (reviewRating === 0) {
             showToast('Please select a star rating', 'error');
             return;
@@ -251,13 +247,13 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 overflow-y-auto p-5" onClick={onClose}>
-            <div className="relative w-full max-w-[900px] max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-legacy-modal animate-slideInUp" onClick={(e) => e.stopPropagation()}>
-                <button className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center bg-gray-50 text-gray-900 rounded-full border-none cursor-pointer transition-all duration-300 hover:bg-gray-200 z-10" onClick={onClose}>✕</button>
+            <div className="relative w-full max-w-[900px] max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-xl shadow-legacy-modal animate-slideInUp" onClick={(e) => e.stopPropagation()}>
+                <button className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white rounded-full border-none cursor-pointer transition-all duration-300 hover:bg-gray-200 dark:hover:bg-zinc-700 z-10" onClick={onClose}>✕</button>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10 p-10">
                     {/* Image Gallery */}
                     <div className="flex flex-col gap-3">
-                        <div className="w-full h-[300px] bg-gray-50 rounded-xl overflow-hidden">
+                        <div className="w-full h-[300px] bg-gray-50 dark:bg-zinc-800 rounded-xl overflow-hidden">
                             <img src={mainImage} alt={product.product_name} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex flex-wrap gap-3 p-1">
@@ -275,7 +271,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
 
                     {/* Product Info */}
                     <div className="flex flex-col gap-5">
-                        <h1 className="text-3xl text-gray-900 leading-tight font-bold">{product.product_name}</h1>
+                        <h1 className="text-3xl text-gray-900 dark:text-white leading-tight font-bold">{product.product_name}</h1>
 
                         <div className="text-2xl font-bold text-amber-400">
                             <span>₦{product.price}</span>
@@ -283,16 +279,16 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
 
                         <div className="flex items-center gap-2">
                             <StarRating rating={Math.round(product.rating || 0)} />
-                            <span className="text-sm text-gray-600">({totalReviews} reviews)</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">({totalReviews} reviews)</span>
                         </div>
 
                         {/* Engagement */}
-                        <div className="flex flex-wrap gap-4 mt-1 bg-gray-100 p-4 rounded-lg">
+                        <div className="flex flex-wrap gap-4 mt-1 bg-gray-100 dark:bg-zinc-800 p-4 rounded-lg">
                             <button
                                 className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-sm font-medium transition-all cursor-pointer ${
                                     liked
-                                        ? 'bg-red-50 border-red-300 text-red-500'
-                                        : 'border-gray-200 text-gray-600 hover:bg-white hover:border-red-400 hover:text-red-500'
+                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-300 text-red-500'
+                                        : 'border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-400 hover:bg-white hover:border-red-400 hover:text-red-500'
                                 } ${likeLoading ? 'opacity-50 pointer-events-none' : ''}`}
                                 title={liked ? "Unlike this product" : "Like this product"}
                                 onClick={handleLikeToggle}
@@ -302,65 +298,65 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                                 </span>
                                 <span>{likesCount}</span> Likes
                             </button>
-                            <span className="flex items-center gap-1.5 text-sm text-gray-600 px-3 py-1.5 rounded-lg">
+                            <span className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded-lg">
                                 👁 <span>{product.view_count || 0}</span> Views
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 p-4 bg-gray-100 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4 p-4 bg-gray-100 dark:bg-zinc-800 rounded-lg">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">Available:</span>
-                                <span className="text-base font-semibold text-gray-900">{product.quantity || 1}</span>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Available:</span>
+                                <span className="text-base font-semibold text-gray-900 dark:text-white">{product.quantity || 1}</span>
                             </div>
                         </div>
 
                         <div className="product-description">
-                            <h3 className="text-base text-gray-900 mb-2 font-semibold">Description</h3>
-                            <p className="text-sm leading-relaxed text-gray-600">{product.description || 'No description available.'}</p>
+                            <h3 className="text-base text-gray-900 dark:text-white mb-2 font-semibold">Description</h3>
+                            <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{product.description || 'No description available.'}</p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg">
+                        <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg">
                             <div className="flex flex-col">
-                                <span className="text-xs text-gray-500 uppercase tracking-wide mb-1">Location:</span>
-                                <span className="text-sm font-medium text-gray-900"><b>{product.institute || 'N/A'}</b></span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Location:</span>
+                                <span className="text-sm font-medium text-gray-900 dark:text-white"><b>{product.institute || 'N/A'}</b></span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-xs text-gray-500 uppercase tracking-wide mb-1">Category:</span>
-                                <span className="text-sm font-medium text-gray-900"><b>{product.category || 'General'}</b></span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Category:</span>
+                                <span className="text-sm font-medium text-gray-900 dark:text-white"><b>{product.category || 'General'}</b></span>
                             </div>
                         </div>
 
                         {/* Reviews Section */}
-                        <div className="mt-6 pt-6 border-gray-200 bg-gray-100 p-4 rounded-lg" ref={reviewsRef}>
-                            <h3 className="text-lg font-semibold mb-4 text-gray-900">Customer Reviews ({totalReviews})</h3>
+                        <div className="mt-6 pt-6 border-gray-200 dark:border-zinc-800 bg-gray-100 dark:bg-zinc-800 p-4 rounded-lg" ref={reviewsRef}>
+                            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Customer Reviews ({totalReviews})</h3>
                             <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-1">
                                 {loadingReviews ? (
                                     <div className="flex flex-col gap-3 animate-pulse">
                                         {[1, 2].map(i => (
-                                            <div key={i} className="flex gap-3 p-3 bg-white rounded-lg">
-                                                <div className="w-9 h-9 rounded-full bg-gray-200 shrink-0"></div>
+                                            <div key={i} className="flex gap-3 p-3 bg-white dark:bg-zinc-900 rounded-lg">
+                                                <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-zinc-700 shrink-0"></div>
                                                 <div className="flex-1 space-y-2">
-                                                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-                                                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                                                    <div className="h-3 bg-gray-200 dark:bg-zinc-700 rounded w-1/3"></div>
+                                                    <div className="h-3 bg-gray-200 dark:bg-zinc-700 rounded w-2/3"></div>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 ) : reviews.length === 0 ? (
-                                    <p className="text-center py-4 text-gray-500 text-sm italic">No reviews yet. Be the first to review!</p>
+                                    <p className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm italic">No reviews yet. Be the first to review!</p>
                                 ) : (
                                     reviews.map(rev => (
-                                        <div key={rev.id} className="flex gap-3 p-3 bg-white rounded-lg shadow-sm">
+                                        <div key={rev.id} className="flex gap-3 p-3 bg-white dark:bg-zinc-900 rounded-lg shadow-sm">
                                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
                                                 {(rev.user_name || 'U').charAt(0).toUpperCase()}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-sm font-semibold text-gray-900">{rev.user_name || 'User'}</span>
-                                                    <span className="text-xs text-gray-400">{timeAgo(rev.created_at)}</span>
+                                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{rev.user_name || 'User'}</span>
+                                                    <span className="text-xs text-gray-400 dark:text-gray-500">{timeAgo(rev.created_at)}</span>
                                                 </div>
                                                 <StarRating rating={rev.rating} size="text-xs" />
-                                                <p className="text-sm text-gray-600 mt-1 leading-relaxed">{rev.review}</p>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">{rev.review}</p>
                                             </div>
                                         </div>
                                     ))
@@ -369,13 +365,13 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
 
                             {/* Review Form */}
                             {user && !isOwnProduct && userHasPurchased && (
-                                <form onSubmit={handleSubmitReview} className="mt-4 pt-4 border-t border-gray-200">
+                                <form onSubmit={handleSubmitReview} className="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-800">
                                     <div className="flex items-center gap-2 mb-3">
-                                        <span className="text-sm font-medium text-gray-700">Your rating:</span>
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Your rating:</span>
                                         <StarRating rating={reviewRating} onRate={setReviewRating} interactive size="text-xl" />
                                     </div>
                                     <textarea
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors bg-white resize-none"
+                                        className="w-full border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors bg-white dark:bg-zinc-800 resize-none"
                                         rows={3}
                                         placeholder="Write your review..."
                                         value={reviewText}
@@ -391,14 +387,14 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                                 </form>
                             )}
                             {user && !isOwnProduct && !userHasPurchased && (
-                                <div className="mt-4 p-4 bg-amber-50/60 border border-amber-200/80 rounded-xl text-center flex flex-col items-center gap-1.5 animate-fadeIn">
+                                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20/60 border border-amber-200/80 rounded-xl text-center flex flex-col items-center gap-1.5 animate-fadeIn">
                                     <span className="text-amber-500 text-lg">🔒</span>
                                     <p className="text-sm font-semibold text-amber-800 leading-snug">Verified Purchase Required</p>
                                     <p className="text-xs text-amber-600 leading-normal max-w-[320px]">Only verified buyers who have purchased this product and completed their delivery on the platform can drop a review.</p>
                                 </div>
                             )}
                             {!user && (
-                                <p className="mt-4 pt-4 border-t border-gray-200 text-center text-sm text-gray-500">
+                                <p className="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-800 text-center text-sm text-gray-500 dark:text-gray-400">
                                     <a href="/login" className="text-blue-600 font-medium hover:underline">Log in</a> to write a review
                                 </p>
                             )}
@@ -407,12 +403,12 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                         {/* Vendor Section */}
                         {!isVendorPage && (
                             <div className="mt-6">
-                                <h3 className="text-base text-gray-900 mb-3 font-semibold">Seller Information</h3>
-                                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                                <h3 className="text-base text-gray-900 dark:text-white mb-3 font-semibold">Seller Information</h3>
+                                <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <img src={product.pfp || '/placeholder.svg'} alt="Vendor" className="w-[60px] h-[60px] rounded-full object-cover" />
                                         <div className="flex flex-col">
-                                            <h4 className="text-sm font-semibold text-gray-900 mb-0.5">{product.vendor_username || 'Unknown Vendor'}</h4>
+                                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">{product.vendor_username || 'Unknown Vendor'}</h4>
                                             <div className="flex items-center">
                                                 <span className="text-amber-400 text-xs">★★★★★</span>
                                             </div>
@@ -426,7 +422,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                         )}
 
                         {/* Action Buttons */}
-                        <div className="flex flex-col gap-3 mt-6 pt-6 border-t border-gray-100 sticky bottom-0 bg-white pb-2 md:relative md:border-t-0 md:bg-transparent md:pb-0">
+                        <div className="flex flex-col gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-zinc-800 sticky bottom-0 bg-white dark:bg-zinc-900 pb-2 md:relative md:border-t-0 md:bg-transparent md:pb-0">
                             <button className="w-full py-3 px-6 bg-amber-400 text-white rounded-lg font-semibold transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_16px_rgba(255,184,0,0.3)] text-sm border-none cursor-pointer" onClick={handleAddToCart}>Add to Cart</button>
                             <div className="flex gap-2 w-full">
                                 <button className="flex-1 py-3 px-6 bg-blue-600 text-white rounded-lg font-semibold transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_16px_rgba(28,110,242,0.3)] text-sm border border-blue-600 cursor-pointer" onClick={() => {
@@ -445,7 +441,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                                         showToast('Vendor information not available', 'error');
                                     }
                                 }}>Contact Vendor</button>
-                                <button className="p-2.5 rounded-lg border border-gray-200 bg-gray-50 cursor-pointer transition-all hover:bg-white flex items-center justify-center shrink-0" aria-label="Share Product" onClick={handleShare}>
+                                <button className="p-2.5 rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800 cursor-pointer transition-all hover:bg-white flex items-center justify-center shrink-0" aria-label="Share Product" onClick={handleShare}>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="18" cy="5" r="3"></circle>
                                         <circle cx="6" cy="12" r="3"></circle>

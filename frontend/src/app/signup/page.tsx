@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import GoogleAuthButton from '@/components/GoogleAuthButton';
 
 
 export default function SignupPage() {
@@ -69,9 +70,10 @@ export default function SignupPage() {
                 throw new Error(msg);
             }
 
-            // Success
+            // Success — carry any post-auth redirect target through to login.
             alert("Account created successfully! Please login.");
-            router.push('/login');
+            const next = new URLSearchParams(window.location.search).get('next');
+            router.push(next ? `/login?next=${encodeURIComponent(next)}` : '/login');
 
         } catch (err: any) {
             setError(err.message);
@@ -81,19 +83,19 @@ export default function SignupPage() {
     };
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center p-5 bg-gradient-to-br from-gray-50 to-white font-sans">
+        <div className="dark min-h-screen w-full flex items-center justify-center p-5 bg-gradient-to-br from-zinc-950 to-black font-sans">
             <div className="w-full max-w-[420px] px-4 md:px-0">
-                <div className="bg-white rounded-xl p-5 sm:p-8 shadow-sm overflow-visible md:p-10 relative">
-                    <Link href="/" className="flex items-center justify-center gap-2 text-blue-600 font-bold text-lg w-full h-12 overflow-hidden mb-6 no-underline">
-                        <img src="/kauchy_logo.png" alt="Upstart" className="h-[110px] w-[137px] object-cover object-[30%_40%] md:h-[88px] sm:h-[100px] sm:w-[170px]" />
+                <div className="bg-white dark:bg-zinc-900 rounded-xl p-5 sm:p-8 shadow-sm overflow-visible md:p-10 relative">
+                    <Link href="/" className="flex items-center justify-center w-full mb-6 no-underline">
+                        <img src="/logo.png" alt="Kauchy" className="h-20 w-auto object-contain" />
                     </Link>
 
-                    <h2 className="text-2xl font-semibold text-gray-900 mb-2">Create Account</h2>
-                    <p className="text-sm text-gray-600 mb-6">Join our marketplace community</p>
+                    <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Create Account</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">Join our marketplace community</p>
 
                     <form onSubmit={handleSubmit}>
                         <div className="mb-4.5">
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Username</label>
+                            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">Username</label>
                             <input
                                 type="text"
                                 name="username"
@@ -101,11 +103,11 @@ export default function SignupPage() {
                                 onChange={handleChange}
                                 placeholder="Choose a username"
                                 required
-                                className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-gray-900 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                                className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm text-gray-900 dark:text-white bg-white dark:bg-zinc-800 dark:placeholder-gray-500 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
                             />
                         </div>
                         <div className="mb-4.5">
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Phone Number</label>
+                            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">Phone Number</label>
                             <input
                                 type="tel"
                                 name="phone"
@@ -113,11 +115,11 @@ export default function SignupPage() {
                                 onChange={handleChange}
                                 placeholder="10-15 digits"
                                 required
-                                className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-gray-900 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                                className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm text-gray-900 dark:text-white bg-white dark:bg-zinc-800 dark:placeholder-gray-500 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
                             />
                         </div>
                         <div className="mb-4.5">
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Email</label>
+                            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">Email</label>
                             <input
                                 type="email"
                                 name="email"
@@ -125,17 +127,17 @@ export default function SignupPage() {
                                 onChange={handleChange}
                                 placeholder="your@email.com"
                                 required
-                                className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-gray-900 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                                className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm text-gray-900 dark:text-white bg-white dark:bg-zinc-800 dark:placeholder-gray-500 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
                             />
                         </div>
                         <div className="mb-4.5">
-                            <label className="block text-sm font-medium text-gray-900 mb-2">University</label>
+                            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">University</label>
                             <select
                                 name="university"
                                 value={formData.university}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-gray-900 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                                className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm text-gray-900 dark:text-white bg-white dark:bg-zinc-800 dark:placeholder-gray-500 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
                             >
                                 <option value="">Select University</option>
                                 {universities.map((uni, idx) => (
@@ -144,20 +146,20 @@ export default function SignupPage() {
                             </select>
                         </div>
                         <div className="mb-4.5">
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Role</label>
+                            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">Role</label>
                             <select
                                 name="role"
                                 value={formData.role}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-gray-900 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                                className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm text-gray-900 dark:text-white bg-white dark:bg-zinc-800 dark:placeholder-gray-500 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
                             >
                                 <option value="student">Buyer</option>
                                 <option value="vendor">Vendor</option>
                             </select>
                         </div>
                         <div className="mb-4.5">
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Password</label>
+                            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">Password</label>
                             <div className="relative">
                                 <input
                                     type={showPassword ? "text" : "password"}
@@ -167,11 +169,11 @@ export default function SignupPage() {
                                     placeholder="At least 6 characters"
                                     required
                                     minLength={6}
-                                    className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-gray-900 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 pr-20"
+                                    className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm text-gray-900 dark:text-white transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 pr-20"
                                 />
                                 <button
                                     type="button"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none text-gray-600 text-[13px] px-2 py-1.5 cursor-pointer rounded-md hover:text-gray-900"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none text-gray-600 dark:text-gray-400 text-[13px] px-2 py-1.5 cursor-pointer rounded-md hover:text-gray-900"
                                     onClick={() => setShowPassword(!showPassword)}
                                 >
                                     {showPassword ? "Hide" : "Show"}
@@ -179,7 +181,7 @@ export default function SignupPage() {
                             </div>
                         </div>
                         <div className="mb-4.5">
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Confirm Password</label>
+                            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">Confirm Password</label>
                             <div className="relative">
                                 <input
                                     type={showConfirmPassword ? "text" : "password"}
@@ -188,11 +190,11 @@ export default function SignupPage() {
                                     onChange={handleChange}
                                     placeholder="Confirm your password"
                                     required
-                                    className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-gray-900 transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 pr-20"
+                                    className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm text-gray-900 dark:text-white transition-all duration-300 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 pr-20"
                                 />
                                 <button
                                     type="button"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none text-gray-600 text-[13px] px-2 py-1.5 cursor-pointer rounded-md hover:text-gray-900"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none text-gray-600 dark:text-gray-400 text-[13px] px-2 py-1.5 cursor-pointer rounded-md hover:text-gray-900"
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                 >
                                     {showConfirmPassword ? "Hide" : "Show"}
@@ -211,7 +213,17 @@ export default function SignupPage() {
                         </button>
                     </form>
 
-                    <div className="text-center mt-6 text-sm text-gray-600">
+                    <div className="flex items-center gap-3 my-6">
+                        <span className="flex-1 h-px bg-gray-200 dark:bg-zinc-800" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">or</span>
+                        <span className="flex-1 h-px bg-gray-200 dark:bg-zinc-800" />
+                    </div>
+
+                    <div className="flex justify-center">
+                        <GoogleAuthButton next={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') : null} />
+                    </div>
+
+                    <div className="text-center mt-6 text-sm text-gray-600 dark:text-gray-400">
                         <p>Already have an account?
                             <Link href="/login" className="text-blue-600 font-semibold no-underline transition-colors hover:text-amber-400"> Login</Link>
                         </p>

@@ -64,7 +64,8 @@ INSTALLED_APPS = [
     'orders',
     'notification',
     'waitlist',
-    'dispute'
+    'dispute',
+    'kauch'
 ]
 
 MIDDLEWARE = [
@@ -99,9 +100,10 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Also whitelist the production frontend domain explicitly (harmless when ALLOW_ALL is True)
 CORS_ALLOWED_ORIGINS = [
     "https://kauchy.vercel.app",
+    "https://kachy.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:8000",
-    
+
 ]
 
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379')
@@ -211,6 +213,10 @@ AUTH_USER_MODEL = 'account.CustomUserModel'
 
 
 PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY")
+
+# Google OAuth (Sign in with Google). The Web client ID from Google Cloud
+# console; the backend uses it to validate the audience of incoming ID tokens.
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 
 # SUPABASE CONFIGURATION
 SUPABASE_URL = os.getenv('SUPABASE_URL')

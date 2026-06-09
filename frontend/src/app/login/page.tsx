@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import GoogleAuthButton from '@/components/GoogleAuthButton';
 import "@/app/globals.css";
 
 
@@ -33,7 +34,9 @@ export default function LoginPage() {
 
             const data = await response.json();
             login(data);
-            router.push('/');
+            // Return the user to wherever the auth gate sent them from.
+            const next = new URLSearchParams(window.location.search).get('next');
+            router.push(next || '/');
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -47,7 +50,7 @@ export default function LoginPage() {
 
                 <div className="login-card">
                     <Link href="/" className="logo">
-                        <img src="/kauchy_logo.png" alt="Upstart" className="logo-image" />
+                        <img src="/logo.png" alt="Kauchy" className="logo-image" />
                     </Link>
                     <h2>Welcome Back</h2>
                     <p className="subtitle">Enter your credentials to access your account</p>
@@ -82,6 +85,10 @@ export default function LoginPage() {
                         </button>
                     </form>
 
+                    <div className="divider"><span>or</span></div>
+
+                    <GoogleAuthButton next={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') : null} />
+
                     <div className="auth-toggle">
                         Don&apos;t have an account? <Link href="/signup" className="toggle-link">Sign up</Link>
                     </div>
@@ -89,7 +96,8 @@ export default function LoginPage() {
             </div>
             <style jsx>{`
         .login-page-wrapper {
-            min-height: 80vh;
+            min-height: 100vh;
+            background: #09090b;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -108,22 +116,27 @@ export default function LoginPage() {
             height: 80px;
         }
         .login-card {
-            background: #fff;
+            background: #18181b;
+            color: #fafafa;
             padding: 40px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #27272a;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
-        h2 { font-size: 24px; margin-bottom: 8px; font-weight: 600; }
-        .subtitle { font-size: 14px; color: #4b4b4b; margin-bottom: 24px; }
+        h2 { font-size: 24px; margin-bottom: 8px; font-weight: 600; color: #ffffff; }
+        .subtitle { font-size: 14px; color: #a1a1aa; margin-bottom: 24px; }
         .form-group { margin-bottom: 18px; }
-        label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; color: #e4e4e7; }
         input {
             width: 100%;
             padding: 12px 14px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #3f3f46;
             border-radius: 8px;
             font-size: 14px;
+            background: #27272a;
+            color: #ffffff;
         }
+        input::placeholder { color: #71717a; }
         .btn-primary {
             width: 100%;
             padding: 12px;
@@ -135,8 +148,11 @@ export default function LoginPage() {
             cursor: pointer;
         }
         .btn-primary:disabled { opacity: 0.7; }
-        .auth-toggle { text-align: center; margin-top: 24px; font-size: 14px; color: #4b4b4b; }
+        .auth-toggle { text-align: center; margin-top: 24px; font-size: 14px; color: #a1a1aa; }
         .toggle-link { color: var(--primary, #1c6ef2); font-weight: 600; text-decoration: none; }
+        .divider { display: flex; align-items: center; text-align: center; color: #71717a; font-size: 13px; margin: 20px 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #3f3f46; }
+        .divider span { padding: 0 12px; }
       `}</style>
         </div>
     );

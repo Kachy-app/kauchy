@@ -45,5 +45,6 @@ urlpatterns = [
     path('vendor-profile', link_preview),
     path('orders/', include('orders.urls')),
     path('waitlist/', include('waitlist.urls')),
-    path('dispute/', include('dispute.urls'))
+    path('dispute/', include('dispute.urls')),
+    path('kauch/', include('kauch.urls'))
 ]

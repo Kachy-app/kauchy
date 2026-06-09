@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { AuthWall } from '@/context/AuthGateContext';
 import { useToast } from '@/context/ToastContext';
 import LoadingModal from '@/components/LoadingModal';
 import { UserProfile, University } from '@/types';
@@ -9,7 +10,7 @@ import { Moon, Sun } from 'lucide-react';
 
 
 export default function ProfilePage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { showToast } = useToast();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -150,18 +151,19 @@ export default function ProfilePage() {
         }
     };
 
-    if (!user) return <div className="text-center py-10">Please log in</div>;
+    if (!user) return <AuthWall reason="view your profile" loading={authLoading} />;
     if (loading && !profile) return <LoadingModal />;
 
     return (
-        <main className="container mx-auto px-2.5 py-5 sm:px-5 sm:py-10 flex flex-col gap-6">
+        <div className="dark contents">
+        <main className="max-w-[640px] mx-auto px-4 py-6 flex flex-col gap-6">
             {loading && <LoadingModal />}
 
             {/* Profile Header Card */}
-            <div className="bg-white rounded-xl p-5 sm:p-6 shadow-legacy-card flex flex-col items-center text-center gap-5">
+            <div className="bg-white dark:bg-zinc-900 rounded-xl p-5 sm:p-6 shadow-legacy-card flex flex-col items-center text-center gap-5">
                 <div className="flex flex-col items-center gap-3">
                     <div
-                        className="w-[120px] h-[120px] rounded-full overflow-hidden bg-[#f4f6fa] cursor-pointer transition-transform duration-300 hover:scale-105"
+                        className="w-[120px] h-[120px] rounded-full overflow-hidden bg-[#f4f6fa] dark:bg-zinc-800 cursor-pointer transition-transform duration-300 hover:scale-105"
                         onClick={() => document.getElementById('photoInput')?.click()}
                     >
                         <img
@@ -180,56 +182,56 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex flex-col items-center gap-2">
-                    <h1 className="text-2xl font-bold text-[#1d1d1d] mb-2">{profile?.username}</h1>
+                    <h1 className="text-2xl font-bold text-[#1d1d1d] dark:text-white mb-2">{profile?.username}</h1>
                     <span className="inline-block bg-[#1c6ef2] text-white px-3 py-1.5 rounded-full text-xs font-semibold">{profile?.role}</span>
                 </div>
             </div>
 
             {/* Account Information Card */}
-            <div className="bg-white rounded-xl p-5 sm:p-6 shadow-legacy-card">
-                <h2 className="text-lg font-semibold text-[#1d1d1d] mb-5">Account Information</h2>
+            <div className="bg-white dark:bg-zinc-900 rounded-xl p-5 sm:p-6 shadow-legacy-card">
+                <h2 className="text-lg font-semibold text-[#1d1d1d] dark:text-white mb-5">Account Information</h2>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[#1d1d1d] mb-2">Username</label>
+                    <label className="block text-sm font-medium text-[#1d1d1d] dark:text-gray-100 mb-2">Username</label>
                     <input
                         type="text"
-                        className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-[#1d1d1d] transition-all duration-300 focus:outline-none focus:border-[#1c6ef2] focus:ring-4 focus:ring-[#1c6ef2]/10 disabled:bg-[#f4f6fa] disabled:cursor-not-allowed bg-white"
+                        className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm text-[#1d1d1d] dark:text-white transition-all duration-300 focus:outline-none focus:border-[#1c6ef2] focus:ring-4 focus:ring-[#1c6ef2]/10 disabled:bg-[#f4f6fa] dark:disabled:bg-zinc-800 disabled:cursor-not-allowed bg-white dark:bg-zinc-800 dark:placeholder-gray-500"
                         value={profile?.username || ''}
                         disabled
                     />
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[#1d1d1d] mb-2">Email</label>
+                    <label className="block text-sm font-medium text-[#1d1d1d] dark:text-gray-100 mb-2">Email</label>
                     <input
                         type="email"
-                        className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-[#1d1d1d] transition-all duration-300 focus:outline-none focus:border-[#1c6ef2] focus:ring-4 focus:ring-[#1c6ef2]/10 disabled:bg-[#f4f6fa] disabled:cursor-not-allowed bg-white"
+                        className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm text-[#1d1d1d] dark:text-white transition-all duration-300 focus:outline-none focus:border-[#1c6ef2] focus:ring-4 focus:ring-[#1c6ef2]/10 disabled:bg-[#f4f6fa] dark:disabled:bg-zinc-800 disabled:cursor-not-allowed bg-white dark:bg-zinc-800 dark:placeholder-gray-500"
                         value={profile?.email || ''}
                         disabled
                     />
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[#1d1d1d] mb-2">Phone Number</label>
+                    <label className="block text-sm font-medium text-[#1d1d1d] dark:text-gray-100 mb-2">Phone Number</label>
                     <input
                         type="text"
-                        className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-[#1d1d1d] transition-all duration-300 focus:outline-none focus:border-[#1c6ef2] focus:ring-4 focus:ring-[#1c6ef2]/10 disabled:bg-[#f4f6fa] disabled:cursor-not-allowed bg-white"
+                        className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm text-[#1d1d1d] dark:text-white transition-all duration-300 focus:outline-none focus:border-[#1c6ef2] focus:ring-4 focus:ring-[#1c6ef2]/10 disabled:bg-[#f4f6fa] dark:disabled:bg-zinc-800 disabled:cursor-not-allowed bg-white dark:bg-zinc-800 dark:placeholder-gray-500"
                         value={profile?.phone || ''}
                         disabled
                     />
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[#1d1d1d] mb-2">Bio</label>
+                    <label className="block text-sm font-medium text-[#1d1d1d] dark:text-gray-100 mb-2">Bio</label>
                     {isEditing ? (
                         <textarea
-                            className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-[#1d1d1d] transition-all duration-300 focus:outline-none focus:border-[#1c6ef2] focus:ring-4 focus:ring-[#1c6ef2]/10 min-h-[88px] max-h-[300px] leading-relaxed"
+                            className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm text-[#1d1d1d] dark:text-white transition-all duration-300 focus:outline-none focus:border-[#1c6ef2] focus:ring-4 focus:ring-[#1c6ef2]/10 min-h-[88px] max-h-[300px] leading-relaxed dark:bg-zinc-800 dark:placeholder-gray-500"
                             value={editForm.bio}
                             onChange={e => setEditForm({ ...editForm, bio: e.target.value })}
                         />
                     ) : (
                         <textarea
-                            className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-[#1d1d1d] transition-all duration-300 disabled:bg-[#f4f6fa] disabled:cursor-not-allowed bg-white min-h-[88px] max-h-[300px] leading-relaxed"
+                            className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm text-[#1d1d1d] dark:text-white transition-all duration-300 disabled:bg-[#f4f6fa] dark:disabled:bg-zinc-800 disabled:cursor-not-allowed bg-white dark:bg-zinc-800 min-h-[88px] max-h-[300px] leading-relaxed dark:placeholder-gray-500"
                             value={profile?.bio || ''}
                             disabled
                         />
@@ -237,10 +239,10 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[#1d1d1d] mb-2">University</label>
+                    <label className="block text-sm font-medium text-[#1d1d1d] dark:text-gray-100 mb-2">University</label>
                     {isEditing ? (
                         <select
-                            className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-[#1d1d1d] transition-all duration-300 focus:outline-none focus:border-[#1c6ef2] focus:ring-4 focus:ring-[#1c6ef2]/10 bg-white"
+                            className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm text-[#1d1d1d] dark:text-white transition-all duration-300 focus:outline-none focus:border-[#1c6ef2] focus:ring-4 focus:ring-[#1c6ef2]/10 bg-white dark:bg-zinc-800 dark:placeholder-gray-500"
                             value={editForm.institute}
                             onChange={e => setEditForm({ ...editForm, institute: e.target.value })}
                         >
@@ -250,7 +252,7 @@ export default function ProfilePage() {
                     ) : (
                         <input
                             type="text"
-                            className="w-full px-3.5 py-3 border border-gray-200 rounded-lg text-sm text-[#1d1d1d] transition-all duration-300 disabled:bg-[#f4f6fa] disabled:cursor-not-allowed bg-white"
+                            className="w-full px-3.5 py-3 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm text-[#1d1d1d] dark:text-white transition-all duration-300 disabled:bg-[#f4f6fa] dark:disabled:bg-zinc-800 disabled:cursor-not-allowed bg-white dark:bg-zinc-800 dark:placeholder-gray-500"
                             value={profile?.institute || ''}
                             disabled
                         />
@@ -266,7 +268,7 @@ export default function ProfilePage() {
                             Save Changes
                         </button>
                         <button
-                            className="w-full py-3 px-6 bg-gray-100 text-[#1d1d1d] rounded-lg text-sm font-semibold hover:bg-gray-200 transition-all duration-300"
+                            className="w-full py-3 px-6 bg-gray-100 dark:bg-zinc-800 text-[#1d1d1d] dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all duration-300"
                             onClick={() => setIsEditing(false)}
                         >
                             Cancel
@@ -283,17 +285,17 @@ export default function ProfilePage() {
             </div>
 
             {/* Preferences Card */}
-            <div className="bg-white rounded-xl p-5 sm:p-6 shadow-legacy-card">
-                <h2 className="text-lg font-semibold text-[#1d1d1d] mb-5">Preferences</h2>
+            <div className="bg-white dark:bg-zinc-900 rounded-xl p-5 sm:p-6 shadow-legacy-card">
+                <h2 className="text-lg font-semibold text-[#1d1d1d] dark:text-white mb-5">Preferences</h2>
                 <div className="flex items-center justify-between py-2">
                     <div>
-                        <p className="text-sm font-medium text-[#1d1d1d]">Dark Mode</p>
-                        <p className="text-xs text-gray-500">Toggle dark mode appearance</p>
+                        <p className="text-sm font-medium text-[#1d1d1d] dark:text-white">Dark Mode</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Toggle dark mode appearance</p>
                     </div>
                     {mounted && (
                         <button 
                             onClick={() => setTheme(currentTheme === 'dark' ? 'light' : 'dark')}
-                            className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors shadow-sm"
+                            className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 transition-colors shadow-sm"
                             title="Toggle Dark Mode"
                         >
                             {currentTheme === 'dark' ? <Sun size={24} className="text-amber-500" /> : <Moon size={24} />}
@@ -302,5 +304,6 @@ export default function ProfilePage() {
                 </div>
             </div>
         </main>
+        </div>
     );
 }

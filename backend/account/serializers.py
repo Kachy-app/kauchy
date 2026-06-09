@@ -40,7 +40,8 @@ class UserCreateSerializer(UserCreateSerializer):
             role=role,
             username=username,
             phone=phone,
-            institute=institute
+            institute=institute,
+            profile_completed=True,
         )
         user.set_password(validate_data['password'])
         user.save()
@@ -70,8 +71,8 @@ class UserSerializer(UserSerializer):
     profile_url = serializers.URLField(read_only=True)
     class Meta(UserSerializer.Meta):
         model = User
-        fields = ("id", "username", "role", "email", "phone", "institute", "rating", "profile_picture", "profile_url", "bio")
-        read_only_fields = ("id", "username", "role", "email", "phone")
+        fields = ("id", "username", "role", "email", "phone", "institute", "rating", "profile_picture", "profile_url", "bio", "profile_completed")
+        read_only_fields = ("id", "username", "role", "email", "phone", "profile_completed")
 
 
     def update(self, instance, validated_data):
