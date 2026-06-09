@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { AuthWall } from '@/context/AuthGateContext';
 import { useRouter } from 'next/navigation';
 import ProductModal from '@/components/ProductModal';
 
@@ -34,7 +35,7 @@ interface CheckoutResult {
 }
 
 export default function CartPage(): JSX.Element {
-    const { user, logout } = useAuth();
+    const { user, logout, loading: authLoading } = useAuth();
     const router = useRouter();
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -238,18 +239,8 @@ export default function CartPage(): JSX.Element {
         setCheckoutError(null);
     };
 
-    if (!user && !loading) {
-        return (
-            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-zinc-900 rounded-xl shadow-legacy-card max-w-2xl mx-auto mt-10">
-                <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">Please log in to view cart</h2>
-                <button
-                    className="bg-[#ffb800] text-white py-3 px-8 rounded-lg font-semibold hover:-translate-y-0.5 hover:shadow-lg transition-all"
-                    onClick={() => router.push('/login')}
-                >
-                    Login
-                </button>
-            </div>
-        )
+    if (!user) {
+        return <AuthWall reason="view your cart" loading={authLoading} />;
     }
 
     return (

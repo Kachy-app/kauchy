@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import QRScannerOverlay from '@/components/QRScannerOverlay';
 import { useAuth } from '@/context/AuthContext';
+import { AuthWall } from '@/context/AuthGateContext';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -20,7 +21,7 @@ function OrdersPageContent() {
     const [disputeSubmitting, setDisputeSubmitting] = useState(false);
     const sidebarRef = useRef<HTMLDivElement>(null);
 
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const currentUserName = user?.user?.username || user?.username;
     const searchParams = useSearchParams();
     const orderIdParam = searchParams.get('id');
@@ -207,6 +208,8 @@ function OrdersPageContent() {
             setDisputeSubmitting(false);
         }
     };
+
+    if (!user) return <AuthWall reason="view your orders" loading={authLoading} />;
 
     return (
         <div className="flex h-[calc(100vh-70px)] overflow-hidden relative lg:grid lg:grid-cols-[320px_1fr] bg-[#f4f6fa] dark:bg-zinc-950">

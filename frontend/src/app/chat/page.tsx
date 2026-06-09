@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { AuthWall } from '@/context/AuthGateContext';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Image as ImageIcon, X, Reply, Check, CheckCheck } from 'lucide-react';
@@ -183,7 +184,7 @@ const MessageContent = ({ text, file, onImageClick }: { text?: string | null; fi
 };
 
 export default function ChatPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
@@ -470,7 +471,7 @@ export default function ChatPage() {
         return () => document.removeEventListener('click', handleClickOutside);
     }, [isSidebarOpen]);
 
-    if (!user) return <div className="flex items-center justify-center h-screen bg-[#f4f6fa] dark:bg-zinc-800 text-[#1d1d1d] dark:text-white">Please login...</div>;
+    if (!user) return <AuthWall reason="open your messages" loading={authLoading} />;
 
     const activeConv = conversations.find(c => c.id === activeConversationId);
 

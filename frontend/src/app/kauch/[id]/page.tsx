@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { useAuthGate } from '@/context/AuthGateContext';
 import { Heart, MessageCircle, Share2, MoreHorizontal, ShoppingBag, ArrowLeft, Users, Send } from 'lucide-react';
 
 interface Comment {
@@ -61,6 +62,7 @@ export default function KauchProfile() {
   const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { requireAuth } = useAuthGate();
   const kauchId = params?.id as string;
 
   const [kauch, setKauch] = useState<Kauch | null>(null);
@@ -103,10 +105,7 @@ export default function KauchProfile() {
   }, [kauchId, user]);
 
   const handleFollowToggle = async () => {
-    if (!user) {
-      showToast('Please log in to follow.', 'error');
-      return;
-    }
+    if (!requireAuth('follow this store')) return;
     if (!kauch) return;
 
     // optimistic update
@@ -143,10 +142,7 @@ export default function KauchProfile() {
   };
 
   const handleLike = async (id: number) => {
-    if (!user) {
-      showToast('Please log in to like.', 'error');
-      return;
-    }
+    if (!requireAuth('like posts')) return;
 
     // optimistic update
     setPosts(prev => prev.map(post =>
@@ -214,10 +210,7 @@ export default function KauchProfile() {
   };
 
   const submitComment = async (postId: number) => {
-    if (!user) {
-      showToast('Please log in to comment.', 'error');
-      return;
-    }
+    if (!requireAuth('comment')) return;
     const text = (commentDrafts[postId] || '').trim();
     if (!text) return;
 

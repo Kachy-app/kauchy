@@ -33,7 +33,9 @@ export default function LoginPage() {
 
             const data = await response.json();
             login(data);
-            router.push('/');
+            // Return the user to wherever the auth gate sent them from.
+            const next = new URLSearchParams(window.location.search).get('next');
+            router.push(next || '/');
         } catch (err: any) {
             setError(err.message);
         } finally {

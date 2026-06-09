@@ -4,6 +4,7 @@ import { X, Heart, MessageCircle, Send } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useAuthGate } from '../context/AuthGateContext';
 
 interface Comment {
     id: number;
@@ -40,6 +41,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
     const videoRef = useRef<HTMLVideoElement>(null);
     const { user } = useAuth();
     const { showToast } = useToast();
+    const { requireAuth } = useAuthGate();
 
     // Like state
     const [liked, setLiked] = useState(isLikedByUser);
@@ -113,10 +115,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
     }
 
     async function handleLikeToggle() {
-        if (!user) {
-            showToast('Please login to like content', 'error');
-            return;
-        }
+        if (!requireAuth('like content')) return;
         if (likeLoading || !contentId) return;
         setLikeLoading(true);
 
@@ -153,10 +152,7 @@ export default function VideoModal({ video, caption, contentId, likes = 0, views
 
     async function handleSubmitComment(e: React.FormEvent) {
         e.preventDefault();
-        if (!user) {
-            showToast('Please login to comment', 'error');
-            return;
-        }
+        if (!requireAuth('comment')) return;
         if (commentText.trim().length < 3) {
             showToast('Comment must be at least 3 characters', 'error');
             return;

@@ -69,9 +69,10 @@ export default function SignupPage() {
                 throw new Error(msg);
             }
 
-            // Success
+            // Success — carry any post-auth redirect target through to login.
             alert("Account created successfully! Please login.");
-            router.push('/login');
+            const next = new URLSearchParams(window.location.search).get('next');
+            router.push(next ? `/login?next=${encodeURIComponent(next)}` : '/login');
 
         } catch (err: any) {
             setError(err.message);

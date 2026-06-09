@@ -1,13 +1,14 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { AuthWall } from '@/context/AuthGateContext';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/context/ToastContext';
 
 
 interface KpiData { }
 export default function AnalyticsPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
     const [stats, setStats] = useState<any>({
@@ -140,7 +141,7 @@ export default function AnalyticsPage() {
         }
     };
 
-    if (!user) return null; // or loading spinner
+    if (!user) return <AuthWall reason="view your analytics" loading={authLoading} />;
 
     return (
         <div className="p-4 sm:p-8 bg-gray-50 dark:bg-zinc-950 min-h-screen">

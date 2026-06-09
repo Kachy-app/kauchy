@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { AuthWall } from '@/context/AuthGateContext';
 
 interface Transaction {
     userId: number;
@@ -19,7 +19,6 @@ interface Toast {
 
 export default function WalletPage() {
     const { user, logout, loading } = useAuth();
-    const router = useRouter();
 
     // State
     const [balance, setBalance] = useState<number>(0);
@@ -58,10 +57,7 @@ export default function WalletPage() {
 
     useEffect(() => {
         if (loading) return;
-        if (!user) {
-            router.push('/login');
-            return;
-        }
+        if (!user) return;
         loadWalletData();
     }, [user, loading]);
 
@@ -310,6 +306,8 @@ export default function WalletPage() {
         setIsWithdrawOpen(false);
         setDrawerOverlayOpen(false);
     };
+
+    if (!user) return <AuthWall reason="access your wallet" loading={loading} />;
 
     return (
         <div className="w-full max-w-[1400px] mx-auto px-2.5 py-5 sm:px-5 sm:py-10 font-sans text-gray-900 dark:text-white">

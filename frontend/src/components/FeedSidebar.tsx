@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useAuthGate } from '../context/AuthGateContext';
 import { Heart, MessageCircle, Send, X, Share2, ShoppingCart, Info, Store } from 'lucide-react';
 
 interface FeedSidebarProps {
@@ -50,6 +51,7 @@ function StarRating({ rating, onRate, interactive = false, size = 'text-base' }:
 export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, commentsOnly = false }: FeedSidebarProps) {
     const { showToast } = useToast();
     const { user } = useAuth();
+    const { requireAuth } = useAuthGate();
     const router = useRouter();
 
     // Generic states
@@ -111,10 +113,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
     }
 
     async function handleProductLike() {
-        if (!user) {
-            showToast('Please login to like products', 'error');
-            return;
-        }
+        if (!requireAuth('like products')) return;
         if (likeLoading || !itemId) return;
         setLikeLoading(true);
 
@@ -142,7 +141,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
 
     async function submitProductReview(e: React.FormEvent) {
         e.preventDefault();
-        if (!user) return showToast('Please login to write a review', 'error');
+        if (!requireAuth('write a review')) return;
         if (reviewRating === 0) return showToast('Please select a star rating', 'error');
         if (reviewText.trim().length < 3) return showToast('Review must be at least 3 characters', 'error');
         if (submittingReview || !itemId) return;
@@ -194,7 +193,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
     }
 
     async function handleContentLike() {
-        if (!user) return showToast('Please login to like content', 'error');
+        if (!requireAuth('like content')) return;
         if (likeLoading || !itemId) return;
         setLikeLoading(true);
 
@@ -228,7 +227,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
 
     async function submitContentComment(e: React.FormEvent) {
         e.preventDefault();
-        if (!user) return showToast('Please login to comment', 'error');
+        if (!requireAuth('comment')) return;
         if (reviewText.trim().length < 3) return showToast('Comment must be at least 3 characters', 'error');
         if (submittingReview || !itemId) return;
 
@@ -284,7 +283,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
     }
 
     async function handleKauchLike() {
-        if (!user) return showToast('Please login to like posts', 'error');
+        if (!requireAuth('like posts')) return;
         if (likeLoading || !itemId) return;
         setLikeLoading(true);
         try {
@@ -308,7 +307,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
 
     async function submitKauchComment(e: React.FormEvent) {
         e.preventDefault();
-        if (!user) return showToast('Please login to comment', 'error');
+        if (!requireAuth('comment')) return;
         if (reviewText.trim().length < 1) return;
         if (submittingReview || !itemId) return;
 
@@ -431,7 +430,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => {
-                                    if (!user) { showToast('Please login to message vendor', 'error'); return; }
+                                    if (!requireAuth('message the vendor')) return;
                                     if (item.vendor_id) {
                                         const productLink = `${window.location.origin}/feed?type=${type}&id=${itemId}`;
                                         const msgText = type === 'product'
@@ -566,7 +565,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
                     <button 
                         className="w-full flex justify-center items-center gap-2 py-3.5 sm:py-3 bg-[#1c6ef2] hover:bg-[#1558c9] text-white rounded-lg font-bold text-base sm:text-sm shadow-sm transition-colors"
                         onClick={() => {
-                            if (!user) { showToast('Please login to message vendor', 'error'); return; }
+                            if (!requireAuth('message the vendor')) return;
                             if (item.vendor_id) {
                                 const productLink = `${window.location.origin}/feed?type=${type}&id=${itemId}`;
                                 const msgText = type === 'product'

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { AuthWall } from '@/context/AuthGateContext';
 import { Image as ImageIcon, Video, Plus, ArrowLeft, X } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 
@@ -22,7 +23,7 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function CreateKauchContent() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'post' | 'kauches'>('post');
@@ -170,6 +171,8 @@ export default function CreateKauchContent() {
         : [...prev, productId]
     );
   };
+
+  if (!user) return <AuthWall reason="create a post" loading={authLoading} />;
 
   return (
     <div className="bg-gray-50 min-h-screen dark:bg-zinc-950 pb-20 pt-24 px-4">

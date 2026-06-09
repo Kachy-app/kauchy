@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { X, Info, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { useAuthGate } from '@/context/AuthGateContext';
 import FeedSidebar from '@/components/FeedSidebar';
 
 // Swiper integration
@@ -20,6 +21,7 @@ function FeedContent() {
     const router = useRouter();
     const { user } = useAuth();
     const { showToast } = useToast();
+    const { requireAuth } = useAuthGate();
 
     const initialType = searchParams.get('type');
     const initialId = searchParams.get('id');
@@ -96,10 +98,7 @@ function FeedContent() {
     };
 
     const addToCart = async (product: any, quantity: number) => {
-        if (!user) {
-            showToast('Please login to add items to cart', 'error');
-            return;
-        }
+        if (!requireAuth('add items to your cart')) return;
 
         try {
             const productId = product._id || product.id;

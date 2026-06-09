@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { AuthWall } from '@/context/AuthGateContext';
 import { useTheme } from 'next-themes';
 import { User, Package, Boxes, BarChart2, Wallet, Moon, Sun, LogOut, ChevronRight } from 'lucide-react';
 
 export default function AccountPage() {
-    const { user, logout } = useAuth();
+    const { user, logout, loading } = useAuth();
     const { theme, setTheme, systemTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
@@ -40,12 +41,7 @@ export default function AccountPage() {
     }, [user]);
 
     if (!user) {
-        return (
-            <div className="min-h-[calc(100dvh-135px)] bg-gray-50 dark:bg-zinc-950 flex flex-col items-center justify-center gap-4 py-20 text-center px-4">
-                <p className="text-gray-600 dark:text-gray-300">Please log in to view your account.</p>
-                <Link href="/login" className="px-6 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors">Log In</Link>
-            </div>
-        );
+        return <AuthWall reason="view your account" loading={loading} />;
     }
 
     const username = profile?.username || user?.user?.username || user?.username || 'User';

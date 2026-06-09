@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useAuthGate } from '../context/AuthGateContext';
 
 interface Product {
     _id?: string;
@@ -76,6 +77,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
     const [quantity, setQuantity] = useState(1);
     const { showToast } = useToast();
     const { user } = useAuth();
+    const { requireAuth } = useAuthGate();
 
     // Like state
     const [liked, setLiked] = useState(false);
@@ -132,10 +134,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
     }
 
     async function handleLikeToggle() {
-        if (!user) {
-            showToast('Please login to like products', 'error');
-            return;
-        }
+        if (!requireAuth('like products')) return;
         if (likeLoading || !productId) return;
         setLikeLoading(true);
 
@@ -163,10 +162,7 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
 
     async function handleSubmitReview(e: React.FormEvent) {
         e.preventDefault();
-        if (!user) {
-            showToast('Please login to write a review', 'error');
-            return;
-        }
+        if (!requireAuth('write a review')) return;
         if (reviewRating === 0) {
             showToast('Please select a star rating', 'error');
             return;

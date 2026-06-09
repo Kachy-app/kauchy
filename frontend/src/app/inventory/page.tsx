@@ -1,12 +1,13 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { AuthWall } from '@/context/AuthGateContext';
 import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'next/navigation';
 import VideoModal from '@/components/VideoModal';
 
 export default function InventoryPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { showToast } = useToast();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('inventory');
@@ -226,7 +227,7 @@ export default function InventoryPage() {
         } catch (err) { showToast("Error appending content", "error"); }
     };
 
-    if (!user) return <div className="p-10 text-center">Please login</div>;
+    if (!user) return <AuthWall reason="manage your inventory" loading={authLoading} />;
 
     return (
         <div className="container mx-auto px-2.5 py-5 sm:px-5 sm:py-10 w-full max-w-[1400px]">

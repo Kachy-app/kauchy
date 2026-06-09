@@ -2,6 +2,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useAuthGate } from '@/context/AuthGateContext';
 
 
 function VendorProfileContent() {
@@ -10,6 +11,7 @@ function VendorProfileContent() {
     const vendorId = searchParams.get('vendorId');
     const itemId = searchParams.get('itemId');
     const { user } = useAuth();
+    const { requireAuth } = useAuthGate();
 
     const [vendor, setVendor] = useState<any | null>(null);
     const [products, setProducts] = useState<any[]>([]);
@@ -73,10 +75,7 @@ function VendorProfileContent() {
     };
 
     const handleContact = async () => {
-        if (!user) {
-            alert("Please login to contact vendor");
-            return;
-        }
+        if (!requireAuth('contact the vendor')) return;
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/create/${vendorId}`, {
                 method: 'POST',

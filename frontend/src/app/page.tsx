@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Play, Heart, MessageCircle, Share2, UserCircle, ShoppingBag } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { useAuthGate } from '@/context/AuthGateContext';
 import FeedSidebar from '@/components/FeedSidebar';
 
 // Swiper integration
@@ -20,6 +21,7 @@ function FeedContent() {
     const router = useRouter();
     const { user } = useAuth();
     const { showToast } = useToast();
+    const { requireAuth } = useAuthGate();
 
     const initialType = searchParams.get('type');
     const initialId = searchParams.get('id');
@@ -82,10 +84,7 @@ function FeedContent() {
     };
 
     const addToCart = async (product: any, quantity: number) => {
-        if (!user) {
-            showToast('Please login to add items to cart', 'error');
-            return;
-        }
+        if (!requireAuth('add items to your cart')) return;
 
         try {
             const productId = product._id || product.id;
@@ -119,10 +118,7 @@ function FeedContent() {
     };
 
     const handleLike = useCallback(async (postId: number) => {
-        if (!user) {
-            showToast('Please login to like posts', 'error');
-            return;
-        }
+        if (!requireAuth('like posts')) return;
 
         // optimistic toggle
         setFeedItems(prev => prev.map(f =>
@@ -163,7 +159,7 @@ function FeedContent() {
             ));
             showToast('Could not update like', 'error');
         }
-    }, [user, showToast]);
+    }, [requireAuth, showToast]);
 
     const handleSlideChange = (swiper: SwiperType) => {
         setActiveItemIndex(swiper.activeIndex);

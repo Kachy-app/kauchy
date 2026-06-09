@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { AuthWall } from '@/context/AuthGateContext';
 import { useToast } from '@/context/ToastContext';
 import LoadingModal from '@/components/LoadingModal';
 import { UserProfile, University } from '@/types';
@@ -9,7 +10,7 @@ import { Moon, Sun } from 'lucide-react';
 
 
 export default function ProfilePage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { showToast } = useToast();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -150,7 +151,7 @@ export default function ProfilePage() {
         }
     };
 
-    if (!user) return <div className="text-center py-10">Please log in</div>;
+    if (!user) return <AuthWall reason="view your profile" loading={authLoading} />;
     if (loading && !profile) return <LoadingModal />;
 
     return (
