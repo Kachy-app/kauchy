@@ -100,9 +100,10 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Also whitelist the production frontend domain explicitly (harmless when ALLOW_ALL is True)
 CORS_ALLOWED_ORIGINS = [
     "https://kauchy.vercel.app",
+    "https://kachy.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:8000",
-    
+
 ]
 
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379')

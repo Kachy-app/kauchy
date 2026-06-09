@@ -86,8 +86,8 @@ export default function SignupPage() {
         <div className="dark min-h-screen w-full flex items-center justify-center p-5 bg-gradient-to-br from-zinc-950 to-black font-sans">
             <div className="w-full max-w-[420px] px-4 md:px-0">
                 <div className="bg-white dark:bg-zinc-900 rounded-xl p-5 sm:p-8 shadow-sm overflow-visible md:p-10 relative">
-                    <Link href="/" className="flex items-center justify-center gap-2 text-blue-600 font-bold text-lg w-full h-12 overflow-hidden mb-6 no-underline">
-                        <img src="/kauchy_logo_dark.png" alt="Upstart" className="h-[110px] w-[137px] object-cover object-[30%_40%] md:h-[88px] sm:h-[100px] sm:w-[170px]" />
+                    <Link href="/" className="flex items-center justify-center w-full mb-6 no-underline">
+                        <img src="/logo.png" alt="Kauchy" className="h-20 w-auto object-contain" />
                     </Link>
 
                     <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Create Account</h2>

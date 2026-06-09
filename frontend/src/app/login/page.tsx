@@ -50,7 +50,7 @@ export default function LoginPage() {
 
                 <div className="login-card">
                     <Link href="/" className="logo">
-                        <img src="/kauchy_logo_dark.png" alt="Upstart" className="logo-image" />
+                        <img src="/logo.png" alt="Kauchy" className="logo-image" />
                     </Link>
                     <h2>Welcome Back</h2>
                     <p className="subtitle">Enter your credentials to access your account</p>
