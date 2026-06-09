@@ -213,6 +213,10 @@ AUTH_USER_MODEL = 'account.CustomUserModel'
 
 PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY")
 
+# Google OAuth (Sign in with Google). The Web client ID from Google Cloud
+# console; the backend uses it to validate the audience of incoming ID tokens.
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+
 # SUPABASE CONFIGURATION
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_SECRET = os.getenv('SUPABASE_SECRET')

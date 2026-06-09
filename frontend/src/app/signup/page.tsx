@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import GoogleAuthButton from '@/components/GoogleAuthButton';
 
 
 export default function SignupPage() {
@@ -211,6 +212,16 @@ export default function SignupPage() {
                             {loading ? 'Creating Account...' : 'Create Account'}
                         </button>
                     </form>
+
+                    <div className="flex items-center gap-3 my-6">
+                        <span className="flex-1 h-px bg-gray-200 dark:bg-zinc-800" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">or</span>
+                        <span className="flex-1 h-px bg-gray-200 dark:bg-zinc-800" />
+                    </div>
+
+                    <div className="flex justify-center">
+                        <GoogleAuthButton next={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') : null} />
+                    </div>
 
                     <div className="text-center mt-6 text-sm text-gray-600 dark:text-gray-400">
                         <p>Already have an account?

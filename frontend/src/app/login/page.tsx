@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import GoogleAuthButton from '@/components/GoogleAuthButton';
 import "@/app/globals.css";
 
 
@@ -84,6 +85,10 @@ export default function LoginPage() {
                         </button>
                     </form>
 
+                    <div className="divider"><span>or</span></div>
+
+                    <GoogleAuthButton next={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') : null} />
+
                     <div className="auth-toggle">
                         Don&apos;t have an account? <Link href="/signup" className="toggle-link">Sign up</Link>
                     </div>
@@ -145,6 +150,9 @@ export default function LoginPage() {
         .btn-primary:disabled { opacity: 0.7; }
         .auth-toggle { text-align: center; margin-top: 24px; font-size: 14px; color: #a1a1aa; }
         .toggle-link { color: var(--primary, #1c6ef2); font-weight: 600; text-decoration: none; }
+        .divider { display: flex; align-items: center; text-align: center; color: #71717a; font-size: 13px; margin: 20px 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #3f3f46; }
+        .divider span { padding: 0 12px; }
       `}</style>
         </div>
     );
