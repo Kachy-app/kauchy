@@ -2,6 +2,7 @@ import { Providers } from './providers';
 import { ToastProvider } from '@/context/ToastContext';
 import PageLayout from '@/components/PageLayout';
 import { Inter, Poppins } from 'next/font/google';
+import { Analytics } from "@vercel/analytics/next";
 
 import "./globals.css";
 
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </PageLayout>
           </Providers>
         </ToastProvider>
+        <Analytics />
       </body>
     </html>
   );
