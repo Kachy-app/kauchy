@@ -17,6 +17,8 @@ from notification.utils import send_notification_to_user
 from Products_app.models import Product
 from Products_app.serializers import ProductSerializer
 from algorithm.utils import personalized_feed
+from algorithm.scoring import add_vendor_affinity
+from algorithm.models import UserVendorAffinity
 import random
 
 class TopCustomersView(APIView):
@@ -377,8 +379,9 @@ class LikeContentView(APIView):
             content = VendorContents.objects.get(id=content_id)
             like, created = ContentLike.objects.get_or_create(user=request.user, content=content)
             serializer = ContentLikeSerializer(like)
-            
+
             if created and request.user != content.user:
+                add_vendor_affinity(request.user, content.user)
                 send_notification_to_user(
                     user=content.user,
                     title="New Like on Content",
@@ -405,7 +408,9 @@ class LikeContentView(APIView):
     def delete(self, request, content_id):
         try:
             content = VendorContents.objects.get(id=content_id)
-            ContentLike.objects.filter(user=request.user, content=content).delete()
+            deleted, _ = ContentLike.objects.filter(user=request.user, content=content).delete()
+            if deleted:
+                add_vendor_affinity(request.user, content.user, delta=-1)
             content.refresh_from_db()
             
             return Response({
@@ -642,9 +647,18 @@ class FeedView(APIView):
 
         # Get contents
         if vendor_id:
-            contents = VendorContents.objects.select_related('user').filter(user_id=vendor_id).order_by('-uploaded_at')[:100]
+            contents = list(VendorContents.objects.select_related('user').filter(user_id=vendor_id).order_by('-uploaded_at')[:100])
         else:
-            contents = VendorContents.objects.select_related('user').all().order_by('-uploaded_at')[:100]
+            contents = list(VendorContents.objects.select_related('user').all().order_by('-uploaded_at')[:100])
+            if user.is_authenticated:
+                # Seen content sinks to the bottom; higher vendor-affinity first,
+                # newest first as the tiebreak.
+                from usersearch.models import ContentView
+                seen_content_ids = set(
+                    ContentView.objects.filter(user=user).values_list('content_id', flat=True)
+                )
+                affinity = {a.vendor_id: a.score for a in UserVendorAffinity.objects.filter(user=user)}
+                contents.sort(key=lambda c: (c.id in seen_content_ids, -affinity.get(c.user_id, 0), -c.id))
 
         # Serialize both
         product_data = ProductSerializer(products, many=True, context={'request': request}).data

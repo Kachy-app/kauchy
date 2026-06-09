@@ -18,8 +18,8 @@ import httpx
 from drf_spectacular.utils import extend_schema,OpenApiParameter,OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 from django.db.models import F
-from algorithm.models import UserCategoryModel
 from algorithm.utils import personalized_feed
+from algorithm.scoring import add_category_interest, add_vendor_affinity
 # Create your views here.
 
 class ProductListCreateView(APIView):
@@ -203,11 +203,11 @@ class ProductDetailView(APIView):
                 _, created = ProductView.objects.get_or_create(product=product, user=auth_user)
                 if created:
                     Product.objects.filter(pk=pk).update(view_count=F('view_count') + 1)
-                user_category = UserCategoryModel.objects.filter(user=auth_user, category=data["category"])
-                if user_category.exists():
-                    user_category.update(view_count=F('view_count') + 1)
-                else:
-                    UserCategoryModel.objects.create(user=auth_user, category=data["category"])
+                # NOTE: a feed view is NOT a preference signal — in a scrolling
+                # feed the user doesn't choose what appears. Category/vendor
+                # interest is only raised when the user actively likes (see
+                # ProductLikeToggleView). We still record ProductView above so
+                # seen products can be pushed to the bottom of the feed.
         return Response(data)
 
     
@@ -277,9 +277,15 @@ class ProductLikeToggleView(APIView):
         like, created = ProductLike.objects.get_or_create(product=product, user=request.user)
 
         if not created:
-            # Already liked, so unlike it
+            # Already liked, so unlike it — roll back the preference signal.
             like.delete()
+            add_category_interest(request.user, product.category, delta=-1)
+            add_vendor_affinity(request.user, product.vendor_id, delta=-1)
             return Response({"message": "Product unliked", "likes_count": product.likes_count, "has_liked": False}, status=status.HTTP_200_OK)
+
+        # A like is an intentional preference signal — raise category & vendor interest.
+        add_category_interest(request.user, product.category)
+        add_vendor_affinity(request.user, product.vendor_id)
 
         # Since it was created, save takes care of incrementing the product.likes_count
         product.refresh_from_db()

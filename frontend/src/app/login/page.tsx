@@ -109,11 +109,15 @@ export default function LoginPage() {
         }
         .logo {
             display: flex;
+            width: 100%;
             justify-content: center;
+            align-items: center;
             margin-bottom: 24px;
         }
         .logo-image {
             height: 80px;
+            width: auto;
+            object-fit: contain;
         }
         .login-card {
             background: #18181b;
