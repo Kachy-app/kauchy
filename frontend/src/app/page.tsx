@@ -76,9 +76,21 @@ function FeedContent() {
         showToast(exists ? 'Removed from bookmarks' : 'Saved to bookmarks', 'success');
     }, [bookmarks, showToast]);
 
+    const prevUidRef = useRef<any>(undefined);
     useEffect(() => {
-        // Skip refetch when we already have a cached feed for this same user.
-        if (!hasParams && feedCache && feedCache.uid === (user?.id ?? null)) return;
+        const uid = user?.id ?? null;
+
+        // Invalidate the cache only when the user *actually* changes (login/logout
+        // between two real values) — NOT on the initial null→real auth hydration.
+        if (prevUidRef.current !== undefined && prevUidRef.current !== uid
+            && prevUidRef.current !== null && uid !== null) {
+            feedCache = null;
+        }
+        prevUidRef.current = uid;
+
+        if (hasParams) { loadFeedData(); return; }
+        // With a cached feed and no params, restore — never auto-refetch on return.
+        if (feedCache) return;
         loadFeedData();
     }, [user, initialType, initialId, vendorId]);
 

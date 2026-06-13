@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
-import { ShoppingCart, User, X, Bell, Home, Store, Wallet, MessageSquare, PlusSquare } from 'lucide-react';
+import { ShoppingCart, User, X, Bell, Home, Store, Wallet, MessageSquare, PlusSquare, Search } from 'lucide-react';
 
 type Notification = {
     id: number;
@@ -241,11 +241,10 @@ export default function Navbar() {
 
                 {/* Right Section: Icons */}
                 <div className="flex items-center gap-3">
-                    {showSearchBar && (
-                        <button className="hidden p-2 text-gray-600" title="Search">
-                            🔍
-                        </button>
-                    )}
+                    {/* Search — opens the dedicated search page */}
+                    <Link href="/search" className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${navIconClass}`} title="Search">
+                        <Search size={22} />
+                    </Link>
 
                     {user ? (
                         <>
