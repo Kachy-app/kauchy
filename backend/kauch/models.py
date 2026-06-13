@@ -36,7 +36,12 @@ class PostModel(models.Model):
     kauch = models.ForeignKey(KauchModel, on_delete=models.CASCADE, related_name='posts')
     description = models.TextField(blank=True, default="")
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES, default=IMAGE)
+    # Single primary URL kept for backward compatibility (old posts, link previews).
+    # For image posts this mirrors media_urls[0]; for video posts it is the video URL.
     media_url = models.TextField(null=True, blank=True)
+    # Ordered list of media URLs. A post is either ONE video or MANY images, so this
+    # holds [video_url] for video posts and [img1, img2, ...] for image posts.
+    media_urls = models.JSONField(default=list, blank=True)
     tagged_products = models.ManyToManyField(
         'Products_app.Product', blank=True, related_name='kauch_posts'
     )

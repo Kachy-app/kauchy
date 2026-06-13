@@ -44,11 +44,12 @@ class PostSerializer(serializers.ModelSerializer):
     tagged_products = TaggedProductSerializer(many=True, read_only=True)
     is_liked_by_user = serializers.SerializerMethodField()
     media_url = serializers.SerializerMethodField()
+    media_urls = serializers.SerializerMethodField()
 
     class Meta:
         model = PostModel
         fields = [
-            'id', 'kauch', 'description', 'media_type', 'media_url',
+            'id', 'kauch', 'description', 'media_type', 'media_url', 'media_urls',
             'tagged_products', 'likes_count', 'comments_count',
             'is_liked_by_user', 'created_at',
         ]
@@ -59,6 +60,14 @@ class PostSerializer(serializers.ModelSerializer):
         if obj.media_type == 'video':
             return cloudinary_video_delivery(obj.media_url)
         return obj.media_url
+
+    def get_media_urls(self, obj):
+        # Always return a list. Older posts created before multi-media have an
+        # empty media_urls list, so fall back to the single media_url.
+        urls = obj.media_urls or ([obj.media_url] if obj.media_url else [])
+        if obj.media_type == 'video':
+            return [cloudinary_video_delivery(u) for u in urls]
+        return urls
 
     def get_is_liked_by_user(self, obj):
         request = self.context.get('request')

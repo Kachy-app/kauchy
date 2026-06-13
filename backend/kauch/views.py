@@ -227,15 +227,27 @@ class KauchPostsView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        media_file = request.FILES.get("media")
-        media_url = None
+        # Accept multiple files under the "media" key. A post is either ONE video
+        # or MANY images — never a mix.
+        media_files = request.FILES.getlist("media")
+        media_urls = []
         media_type = PostModel.IMAGE
-        if media_file:
-            media_type = detect_media_type(media_file)
-            try:
-                media_url = upload_to_cloudinary(
-                    media_file, f"kauch/posts/{kauch.id}", resource_type=media_type
+
+        if media_files:
+            types = {detect_media_type(f) for f in media_files}
+            if "video" in types and len(media_files) > 1:
+                return Response(
+                    {"error": "A post can contain either one video or multiple images, not both."},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
+
+            media_type = PostModel.VIDEO if "video" in types else PostModel.IMAGE
+            try:
+                for f in media_files:
+                    url = upload_to_cloudinary(
+                        f, f"kauch/posts/{kauch.id}", resource_type=media_type
+                    )
+                    media_urls.append(url)
             except cloudinary.exceptions.Error as e:
                 return Response(
                     {"error": "Failed to upload media.", "details": str(e)},
@@ -246,7 +258,9 @@ class KauchPostsView(APIView):
             kauch=kauch,
             description=request.data.get("description", "") or "",
             media_type=media_type,
-            media_url=media_url,
+            # Keep the legacy single field pointing at the first item.
+            media_url=media_urls[0] if media_urls else None,
+            media_urls=media_urls,
         )
 
         product_ids = _parse_product_ids(request.data.get("tagged_product_ids"))
@@ -256,6 +270,22 @@ class KauchPostsView(APIView):
 
         serializer = PostSerializer(post, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class PostDetailView(APIView):
+    """Get a single post by id (used for shareable post pages / link previews)."""
+
+    @extend_schema(
+        summary="Get a single post",
+        responses={200: PostSerializer},
+    )
+    def get(self, request, post_id):
+        post = get_object_or_404(
+            PostModel.objects.select_related('kauch').prefetch_related('tagged_products'),
+            pk=post_id,
+        )
+        serializer = PostSerializer(post, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class PostLikeToggleView(APIView):
