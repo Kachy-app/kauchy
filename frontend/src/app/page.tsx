@@ -41,6 +41,8 @@ function FeedContent() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [productSheetOpen, setProductSheetOpen] = useState(false);
     const [activeItemIndex, setActiveItemIndex] = useState(() => canRestore ? feedCache!.index : 0);
+    // Custom right-click floating menu: position + the post it targets.
+    const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; item: any } | null>(null);
 
     const swiperRef = useRef<SwiperType | null>(null);
     const viewedItemsRef = useRef<Set<string>>(new Set());
@@ -219,6 +221,7 @@ function FeedContent() {
 
     const handleSlideChange = (swiper: SwiperType) => {
         setActiveItemIndex(swiper.activeIndex);
+        setCtxMenu(null);
         // Remember position so returning to the feed lands on the same post.
         if (feedCache) feedCache.index = swiper.activeIndex;
     };
@@ -249,6 +252,16 @@ function FeedContent() {
         }
     };
 
+    // Open our custom floating menu at the cursor instead of the browser menu.
+    const handleContextMenu = (e: React.MouseEvent, item: any) => {
+        e.preventDefault();
+        const MENU_W = 208;
+        const MENU_H = 300;
+        const x = Math.min(e.clientX, window.innerWidth - MENU_W - 8);
+        const y = Math.min(e.clientY, window.innerHeight - MENU_H - 8);
+        setCtxMenu({ x: Math.max(8, x), y: Math.max(8, y), item });
+    };
+
     // Double-tap always *likes* (Instagram-style — never unlikes) and shows a burst.
     const doubleTapLike = (item: any) => {
         if (!item.is_liked_by_user) handleLike(item.id);
@@ -259,6 +272,7 @@ function FeedContent() {
     // Unified pointer gestures on the media: long-press → bookmark, double-tap → like.
     // Taps starting on a button/link (action rail, products, username) are ignored.
     const onMediaPointerDown = (e: React.PointerEvent, item: any) => {
+        if (e.button && e.button !== 0) { gestureActive.current = false; return; } // ignore right/middle click
         if ((e.target as HTMLElement).closest('button, a')) { gestureActive.current = false; return; }
         gestureActive.current = true;
         longPressFired.current = false;
@@ -372,6 +386,7 @@ function FeedContent() {
                                 onPointerMove={onMediaPointerMove}
                                 onPointerUp={() => onMediaPointerUp(feedObj.item)}
                                 onPointerLeave={cancelPress}
+                                onContextMenu={(e) => handleContextMenu(e, feedObj.item)}
                             >
                                 <ContentFeedView content={feedObj.item} isActive={index === activeItemIndex} />
 
@@ -565,6 +580,45 @@ function FeedContent() {
                         ))}
                     </div>
                 </div>
+            )}
+
+            {/* Custom right-click floating menu */}
+            {ctxMenu && (
+                <>
+                    <div
+                        className="fixed inset-0 z-[130]"
+                        onClick={() => setCtxMenu(null)}
+                        onContextMenu={(e) => { e.preventDefault(); setCtxMenu(null); }}
+                    />
+                    <div
+                        className="fixed z-[140] w-52 bg-zinc-900/95 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl py-1.5 text-white animate-fadeIn"
+                        style={{ left: ctxMenu.x, top: ctxMenu.y }}
+                    >
+                        <button onClick={() => { handleLike(ctxMenu.item.id); setCtxMenu(null); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-white/10 transition-colors">
+                            <Heart size={18} className={ctxMenu.item.is_liked_by_user ? 'text-red-500' : ''} fill={ctxMenu.item.is_liked_by_user ? 'currentColor' : 'none'} />
+                            {ctxMenu.item.is_liked_by_user ? 'Unlike' : 'Like'}
+                        </button>
+                        <button onClick={() => { setSidebarOpen(true); setCtxMenu(null); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-white/10 transition-colors">
+                            <MessageCircle size={18} /> Comment
+                        </button>
+                        <button onClick={() => { handleShare(ctxMenu.item); setCtxMenu(null); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-white/10 transition-colors">
+                            <Share2 size={18} /> Share
+                        </button>
+                        <button onClick={() => { toggleBookmark(ctxMenu.item); setCtxMenu(null); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-white/10 transition-colors">
+                            <Bookmark size={18} className={bookmarks.includes(ctxMenu.item.id) ? 'text-amber-400' : ''} fill={bookmarks.includes(ctxMenu.item.id) ? 'currentColor' : 'none'} />
+                            {bookmarks.includes(ctxMenu.item.id) ? 'Saved' : 'Save'}
+                        </button>
+                        {Array.isArray(ctxMenu.item.products) && ctxMenu.item.products.length > 0 && (
+                            <button onClick={() => { setProductSheetOpen(true); setCtxMenu(null); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-white/10 transition-colors">
+                                <ShoppingBag size={18} /> Shop products
+                            </button>
+                        )}
+                        <div className="h-px bg-white/10 my-1" />
+                        <button onClick={() => { if (ctxMenu.item.kauch_id) router.push(`/kauch/${ctxMenu.item.kauch_id}`); setCtxMenu(null); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-white/10 transition-colors">
+                            <UserCircle size={18} /> View creator
+                        </button>
+                    </div>
+                </>
             )}
         </div>
     );
