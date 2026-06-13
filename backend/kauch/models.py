@@ -28,9 +28,11 @@ class PostModel(models.Model):
     """A post within a Kauch containing text, media, and tagged products."""
     IMAGE = "image"
     VIDEO = "video"
+    AUDIO = "audio"
     MEDIA_TYPE_CHOICES = [
         (IMAGE, "image"),
         (VIDEO, "video"),
+        (AUDIO, "audio"),
     ]
 
     kauch = models.ForeignKey(KauchModel, on_delete=models.CASCADE, related_name='posts')
@@ -86,6 +88,8 @@ class PostComment(models.Model):
     post = models.ForeignKey(PostModel, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kauch_post_comments')
     text = models.TextField()
+    # A reply points at its parent comment; top-level comments have parent=None.
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

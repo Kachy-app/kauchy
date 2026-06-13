@@ -3,10 +3,12 @@ import cloudinary.uploader
 
 
 def detect_media_type(uploaded_file):
-    """Return 'video' or 'image' based on the uploaded file's content type."""
+    """Return 'video', 'audio', or 'image' based on the uploaded file's content type."""
     content_type = (getattr(uploaded_file, "content_type", "") or "").lower()
     if content_type.startswith("video"):
         return "video"
+    if content_type.startswith("audio"):
+        return "audio"
     return "image"
 
 
@@ -28,7 +30,10 @@ def cloudinary_video_delivery(url):
     first_segment = tail.split("/", 1)[0]
     if "f_auto" in first_segment:
         return url
-    return f"{head}{sep}f_auto,q_auto/{tail}"
+    # q_auto:best keeps Cloudinary's smart format selection (f_auto) but at the
+    # highest automatic quality tier, avoiding the visible softening that the
+    # default q_auto ("good") causes.
+    return f"{head}{sep}f_auto,q_auto:best/{tail}"
 
 
 def upload_to_cloudinary(uploaded_file, folder, resource_type="image"):
