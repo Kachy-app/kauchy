@@ -12,6 +12,9 @@ class Product(models.Model):
     quantity = models.PositiveIntegerField()
     category = models.CharField(max_length=255)
     image_url= models.JSONField(blank=True,null=True, default=list)
+    # Optional, freeform vendor-defined attributes (e.g. {"Size": "M", "Colour": "Red"}).
+    # Products differ wildly, so this is a flexible key/value bag rather than fixed columns.
+    specs = models.JSONField(blank=True, default=dict)
     rating = models.PositiveIntegerField(default=0)
     view_count = models.PositiveIntegerField(default=0, null=True,blank=True)
     likes_count = models.PositiveIntegerField(default=0)

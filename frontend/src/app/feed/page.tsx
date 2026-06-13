@@ -26,6 +26,7 @@ function FeedContent() {
     const initialType = searchParams.get('type');
     const initialId = searchParams.get('id');
     const vendorId = searchParams.get('vendorId');
+    const source = searchParams.get('source');
 
     const [feedItems, setFeedItems] = useState<{ type: 'product' | 'content'; item: any }[]>([]);
     const [loading, setLoading] = useState(true);
@@ -37,7 +38,7 @@ function FeedContent() {
 
     useEffect(() => {
         loadFeedData();
-    }, [user, initialType, initialId, vendorId]);
+    }, [user, initialType, initialId, vendorId, source]);
 
     const loadFeedData = async () => {
         setLoading(true);
@@ -47,7 +48,36 @@ function FeedContent() {
                 headers["Authorization"] = `Bearer ${user.access}`;
             }
 
-            const feedUrl = vendorId 
+            // Carousel mode: show ONLY the products tagged in the originating post,
+            // in carousel order with the tapped product first. ids come via sessionStorage.
+            if (source === 'carousel') {
+                let ids: any[] = [];
+                let clicked: any = null;
+                try {
+                    const raw = sessionStorage.getItem('carouselFeed');
+                    if (raw) { const parsed = JSON.parse(raw); ids = parsed.ids || []; clicked = parsed.clicked; }
+                } catch { /* ignore */ }
+
+                const results = await Promise.all(
+                    ids.map((id) =>
+                        fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/${id}`, { headers })
+                            .then((r) => (r.ok ? r.json() : null))
+                            .catch(() => null)
+                    )
+                );
+                let mapped = results
+                    .filter(Boolean)
+                    .map((item: any) => { item.feed_type = 'product'; return { type: 'product' as const, item }; });
+
+                const idx = mapped.findIndex((f) => String(f.item.id ?? f.item._id) === String(clicked));
+                if (idx > 0) { const [t] = mapped.splice(idx, 1); mapped = [t, ...mapped]; }
+
+                setFeedItems(mapped);
+                setLoading(false);
+                return;
+            }
+
+            const feedUrl = vendorId
                 ? `${process.env.NEXT_PUBLIC_API_URL}/customers/feed/?vendor_id=${vendorId}`
                 : `${process.env.NEXT_PUBLIC_API_URL}/customers/feed/`;
 

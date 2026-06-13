@@ -382,9 +382,9 @@ export default function Navbar() {
                             </div>
                         </>
                     ) : (
-                        <div className="hidden md:flex items-center gap-3 ml-2">
-                            <Link href="/login" className={`text-sm font-semibold hover:text-blue-600 px-3 py-2 ${isDarkNav ? 'text-gray-200' : 'text-gray-700'}`}>Login</Link>
-                            <Link href="/signup" className="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all">Sign Up</Link>
+                        <div className="flex items-center gap-2 sm:gap-3 ml-1 sm:ml-2">
+                            <Link href="/login" className={`text-sm font-semibold hover:text-blue-600 px-2 sm:px-3 py-2 whitespace-nowrap ${isDarkNav ? 'text-gray-200' : 'text-gray-700'}`}>Login</Link>
+                            <Link href="/signup" className="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-4 sm:px-5 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all whitespace-nowrap">Sign Up</Link>
                         </div>
                     )}
                 </div>

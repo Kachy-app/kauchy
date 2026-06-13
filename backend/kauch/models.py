@@ -28,15 +28,22 @@ class PostModel(models.Model):
     """A post within a Kauch containing text, media, and tagged products."""
     IMAGE = "image"
     VIDEO = "video"
+    AUDIO = "audio"
     MEDIA_TYPE_CHOICES = [
         (IMAGE, "image"),
         (VIDEO, "video"),
+        (AUDIO, "audio"),
     ]
 
     kauch = models.ForeignKey(KauchModel, on_delete=models.CASCADE, related_name='posts')
     description = models.TextField(blank=True, default="")
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES, default=IMAGE)
+    # Single primary URL kept for backward compatibility (old posts, link previews).
+    # For image posts this mirrors media_urls[0]; for video posts it is the video URL.
     media_url = models.TextField(null=True, blank=True)
+    # Ordered list of media URLs. A post is either ONE video or MANY images, so this
+    # holds [video_url] for video posts and [img1, img2, ...] for image posts.
+    media_urls = models.JSONField(default=list, blank=True)
     tagged_products = models.ManyToManyField(
         'Products_app.Product', blank=True, related_name='kauch_posts'
     )
@@ -81,6 +88,8 @@ class PostComment(models.Model):
     post = models.ForeignKey(PostModel, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kauch_post_comments')
     text = models.TextField()
+    # A reply points at its parent comment; top-level comments have parent=None.
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -27,6 +27,27 @@ export default function InventoryPage() {
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [isDraggingImages, setIsDraggingImages] = useState(false);
 
+    // Optional custom attributes for a new product (e.g. Size, Colour). Freeform
+    // because products vary — vendors add whatever rows make sense.
+    const [specs, setSpecs] = useState<{ key: string; value: string }[]>([]);
+    const addSpec = () => setSpecs(prev => [...prev, { key: '', value: '' }]);
+    const updateSpec = (i: number, field: 'key' | 'value', val: string) =>
+        setSpecs(prev => prev.map((s, idx) => (idx === i ? { ...s, [field]: val } : s)));
+    const removeSpec = (i: number) => setSpecs(prev => prev.filter((_, idx) => idx !== i));
+
+    // Same custom-attribute rows for the edit modal, seeded from the product.
+    const [editSpecs, setEditSpecs] = useState<{ key: string; value: string }[]>([]);
+    const addEditSpec = () => setEditSpecs(prev => [...prev, { key: '', value: '' }]);
+    const updateEditSpec = (i: number, field: 'key' | 'value', val: string) =>
+        setEditSpecs(prev => prev.map((s, idx) => (idx === i ? { ...s, [field]: val } : s)));
+    const removeEditSpec = (i: number) => setEditSpecs(prev => prev.filter((_, idx) => idx !== i));
+    const openEditProduct = (p: any) => {
+        setEditingProduct(p);
+        const entries = p.specs && typeof p.specs === 'object' ? Object.entries(p.specs) : [];
+        setEditSpecs(entries.map(([key, value]: any) => ({ key, value: String(value) })));
+        setIsEditProductOpen(true);
+    };
+
     // Content Upload States
     const [contentVideoFile, setContentVideoFile] = useState<File | null>(null);
     const [contentVideoPreview, setContentVideoPreview] = useState<string>('');
@@ -119,6 +140,7 @@ export default function InventoryPage() {
         setIsAddProductOpen(false);
         setSelectedImages([]);
         setImagePreviews([]);
+        setSpecs([]);
         if (imageInputRef.current) imageInputRef.current.value = "";
     };
 
@@ -134,6 +156,15 @@ export default function InventoryPage() {
         selectedImages.forEach(file => {
             formData.append('image_url', file);
         });
+
+        // Collapse the dynamic attribute rows into a {key: value} object.
+        const specsObj: Record<string, string> = {};
+        specs.forEach(s => {
+            const k = s.key.trim();
+            const v = s.value.trim();
+            if (k && v) specsObj[k] = v;
+        });
+        formData.append('specs', JSON.stringify(specsObj));
 
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/create`, {
@@ -167,7 +198,12 @@ export default function InventoryPage() {
                     description: data.description,
                     price: parseFloat(data.price),
                     quantity: parseInt(data.quantity),
-                    category: data.category
+                    category: data.category,
+                    specs: editSpecs.reduce((acc: Record<string, string>, s) => {
+                        const k = s.key.trim(); const v = s.value.trim();
+                        if (k && v) acc[k] = v;
+                        return acc;
+                    }, {}),
                 })
             });
             if (res.ok) {
@@ -277,7 +313,7 @@ export default function InventoryPage() {
                                 <div className="flex gap-2">
                                     <button
                                         className="flex-1 py-1.5 bg-[#1c6ef2] text-white text-xs rounded hover:bg-[#165bbd] transition-colors"
-                                        onClick={() => { setEditingProduct(p); setIsEditProductOpen(true); }}
+                                        onClick={() => openEditProduct(p)}
                                     >
                                         Edit
                                     </button>
@@ -368,6 +404,46 @@ export default function InventoryPage() {
                                         <option value="others">Others</option>
                                     </select>
                                 </div>
+                                {/* Optional custom attributes — vendors add whatever fits the product */}
+                                <div className="mb-6">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="block text-sm font-semibold text-[#1d1d1d] dark:text-white">Additional details <span className="font-normal text-gray-400">(optional)</span></label>
+                                        <span className="text-xs text-gray-400">e.g. Size, Colour, Material</span>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        {specs.map((s, i) => (
+                                            <div key={i} className="flex items-center gap-2">
+                                                <input
+                                                    value={s.key}
+                                                    onChange={e => updateSpec(i, 'key', e.target.value)}
+                                                    placeholder="Label (e.g. Size)"
+                                                    className="w-2/5 px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:border-[#1c6ef2] transition-colors text-[#1d1d1d] dark:text-white bg-white dark:bg-zinc-800 dark:placeholder-gray-500 text-sm"
+                                                />
+                                                <input
+                                                    value={s.value}
+                                                    onChange={e => updateSpec(i, 'value', e.target.value)}
+                                                    placeholder="Value (e.g. Medium)"
+                                                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:border-[#1c6ef2] transition-colors text-[#1d1d1d] dark:text-white bg-white dark:bg-zinc-800 dark:placeholder-gray-500 text-sm"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeSpec(i)}
+                                                    className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-zinc-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                    title="Remove"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={addSpec}
+                                            className="self-start mt-1 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-sm font-medium text-[#1c6ef2] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                                        >
+                                            + Add detail
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="mb-6">
                                     <label className="block text-sm font-semibold mb-1.5 text-[#1d1d1d] dark:text-white">Product Images *</label>
                                     <div 
@@ -440,6 +516,46 @@ export default function InventoryPage() {
                                         <option value="sports">Sports</option>
                                         <option value="others">Others</option>
                                     </select>
+                                </div>
+                                {/* Optional custom attributes */}
+                                <div className="mb-4">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="block text-sm font-semibold text-[#1d1d1d] dark:text-white">Additional details <span className="font-normal text-gray-400">(optional)</span></label>
+                                        <span className="text-xs text-gray-400">e.g. Size, Colour</span>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        {editSpecs.map((s, i) => (
+                                            <div key={i} className="flex items-center gap-2">
+                                                <input
+                                                    value={s.key}
+                                                    onChange={e => updateEditSpec(i, 'key', e.target.value)}
+                                                    placeholder="Label"
+                                                    className="w-2/5 px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:border-[#1c6ef2] transition-colors text-[#1d1d1d] dark:text-white bg-white dark:bg-zinc-800 dark:placeholder-gray-500 text-sm"
+                                                />
+                                                <input
+                                                    value={s.value}
+                                                    onChange={e => updateEditSpec(i, 'value', e.target.value)}
+                                                    placeholder="Value"
+                                                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:border-[#1c6ef2] transition-colors text-[#1d1d1d] dark:text-white bg-white dark:bg-zinc-800 dark:placeholder-gray-500 text-sm"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeEditSpec(i)}
+                                                    className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-zinc-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                    title="Remove"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={addEditSpec}
+                                            className="self-start mt-1 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 text-sm font-medium text-[#1c6ef2] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                                        >
+                                            + Add detail
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="p-3 bg-gray-50 dark:bg-zinc-800 rounded-lg text-sm text-gray-600 dark:text-gray-400 mb-6 font-medium">
                                     Views: <strong>{editingProduct.view_count || 0}</strong>

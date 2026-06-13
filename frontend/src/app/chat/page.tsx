@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Image as ImageIcon, X, Reply, Check, CheckCheck } from 'lucide-react';
 import LoadingModal from '@/components/LoadingModal';
+import VoiceRecorder from '@/components/VoiceRecorder';
 
 interface ReplyDetails {
     id: number;
@@ -138,19 +139,25 @@ const MessageContent = ({ text, file, onImageClick }: { text?: string | null; fi
     const urlSplitRegex = /(https?:\/\/[^\s]+)/g;
     const urlTestRegex = /^https?:\/\/[^\s]+$/;
     
-    const isVideo = file && (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(file) || file.includes('/video/upload/'));
+    const isAudio = file && (/\.(mp3|m4a|aac|wav|oga|opus)(\?.*)?$/i.test(file) || /voice-\d+\.(webm|ogg|m4a)/i.test(file));
+    const isVideo = !isAudio && file && (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(file) || file.includes('/video/upload/'));
     const isImage = file && (/\.(jpg|jpeg|png|gif|webp|svg|avif|heic)(\?.*)?$/i.test(file) || file.includes('/image/upload/'));
 
     return (
         <div style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }} className="flex flex-col gap-2 relative z-10">
             {file && (
+                isAudio ? (
+                    <div className="min-w-[200px] sm:min-w-[180px] mt-1">
+                        <audio src={file} controls className="w-full h-10" />
+                    </div>
+                ) : (
                 <div className="w-full max-w-[240px] sm:max-w-[200px] overflow-hidden rounded-lg mt-1 shadow-md">
                     {isVideo ? (
                         <video src={file} controls className="w-full h-auto rounded-lg" />
                     ) : isImage ? (
-                        <div 
+                        <div
                             onClick={() => onImageClick && onImageClick(file)}
-                            className="block cursor-pointer hover:opacity-90 transition-opacity" 
+                            className="block cursor-pointer hover:opacity-90 transition-opacity"
                             title="Click to view full image"
                         >
                             <img src={file} alt="attachment" className="w-full h-auto object-cover rounded-lg" />
@@ -161,6 +168,7 @@ const MessageContent = ({ text, file, onImageClick }: { text?: string | null; fi
                         </a>
                     )}
                 </div>
+                )
             )}
             {text && (
                 <div className="text-[15px] sm:text-[14px]">
@@ -401,10 +409,9 @@ export default function ChatPage() {
         if (textareaRef.current) textareaRef.current.style.height = 'auto';
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+    const uploadFile = async (file: File) => {
         if (!file || !activeConversationId || !user) return;
-        
+
         setIsUploading(true);
         const formData = new FormData();
         formData.append("conversation_id", activeConversationId.toString());
@@ -421,8 +428,13 @@ export default function ChatPage() {
             console.error("Upload error", err);
         } finally {
             setIsUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = "";
         }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) await uploadFile(file);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     const sendMessage = (e?: React.FormEvent) => {
@@ -728,6 +740,11 @@ export default function ChatPage() {
                                 >
                                     {isUploading ? '...' : <ImageIcon size={20} />}
                                 </button>
+                                <VoiceRecorder
+                                    onRecorded={uploadFile}
+                                    disabled={isUploading}
+                                    className="bg-[#f4f6fa] dark:bg-zinc-800 text-[#4b4b4b] dark:text-gray-400 w-[44px] h-[44px] sm:w-10 sm:h-10 shrink-0 hover:bg-[#e5e7eb] dark:hover:bg-zinc-700"
+                                />
                                 <textarea
                                     ref={textareaRef}
                                     value={messageText}

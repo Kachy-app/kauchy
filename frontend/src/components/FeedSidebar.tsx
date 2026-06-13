@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useAuthGate } from '../context/AuthGateContext';
-import { Heart, MessageCircle, Send, X, Share2, ShoppingCart, Info, Store } from 'lucide-react';
+import { Heart, MessageCircle, Send, X, Share2, ShoppingCart, Info, Store, Zap } from 'lucide-react';
 
 interface FeedSidebarProps {
     isOpen: boolean;
@@ -58,6 +58,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
     const [liked, setLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(0);
     const [likeLoading, setLikeLoading] = useState(false);
+    const [buyingNow, setBuyingNow] = useState(false);
     
     // Reviews / Comments states
     const [reviews, setReviews] = useState<any[]>([]);
@@ -67,6 +68,16 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
     const [reviewRating, setReviewRating] = useState(0);
     const [submittingReview, setSubmittingReview] = useState(false);
     const [userHasPurchased, setUserHasPurchased] = useState(false);
+    // Which comment a kauch reply targets (always the top-level comment id).
+    const [replyingTo, setReplyingTo] = useState<{ id: number; username: string } | null>(null);
+    // Top-level comment ids whose reply threads are expanded.
+    const [expandedThreads, setExpandedThreads] = useState<Set<number>>(new Set());
+    const toggleThread = (id: number) =>
+        setExpandedThreads(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
 
     const commentsEndRef = useRef<HTMLDivElement>(null);
 
@@ -268,8 +279,11 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
             if (res.ok) {
                 const data = await res.json();
                 const normalized = (Array.isArray(data) ? data : []).map((c: any) => ({
+                    id: c.id,
                     user_name: c.user?.username,
+                    avatar_url: c.user?.avatar_url,
                     comment: c.text,
+                    parent: c.parent ?? null,
                     created_at: c.created_at,
                 }));
                 setReviews(normalized);
@@ -316,13 +330,15 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/kauch/posts/${itemId}/comments/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.access}` },
-                body: JSON.stringify({ text: reviewText }),
+                body: JSON.stringify({ text: reviewText, parent: replyingTo?.id ?? null }),
             });
             if (res.ok) {
                 const data = await res.json();
-                setReviews(prev => [...prev, { user_name: data.user?.username, comment: data.text, created_at: data.created_at }]);
+                setReviews(prev => [...prev, { id: data.id, user_name: data.user?.username, avatar_url: data.user?.avatar_url, comment: data.text, parent: data.parent ?? null, created_at: data.created_at }]);
                 setTotalReviews(prev => prev + 1);
                 setReviewText('');
+                if (data.parent) setExpandedThreads(prev => new Set(prev).add(data.parent));
+                setReplyingTo(null);
                 setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
             } else {
                 showToast('Failed to post comment', 'error');
@@ -359,11 +375,114 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
         }
     };
 
+    // Buy Now: silently add to cart, then immediately create the order (wallet
+    // payment) for just this item — skipping the cart page entirely.
+    const handleBuyNow = async () => {
+        if (!requireAuth('buy this item')) return;
+        if (buyingNow) return;
+        setBuyingNow(true);
+        const API = process.env.NEXT_PUBLIC_API_URL;
+        const auth = { 'Content-Type': 'application/json', Authorization: `Bearer ${user.access}` };
+        try {
+            const productId = item._id || item.id;
+
+            // 1. Add to cart.
+            const addRes = await fetch(`${API}/cart/cart-items/${productId}`, {
+                method: 'POST', headers: auth, body: JSON.stringify({ quantity: 1 }),
+            });
+            if (!addRes.ok) {
+                const d = await addRes.json().catch(() => ({}));
+                showToast(d.message || d.error || 'Could not start purchase', 'error');
+                return;
+            }
+
+            // 2. Find this product's cart item id (POST response shape varies).
+            const listRes = await fetch(`${API}/cart/cart-items/`, { headers: auth });
+            const items = await listRes.json();
+            const cartItem = Array.isArray(items)
+                ? items.find((c: any) => String(c.product) === String(productId))
+                : null;
+            if (!cartItem) { showToast('Could not start purchase', 'error'); return; }
+
+            // 3. Create the order (this is the payment step — deducts wallet).
+            const orderRes = await fetch(`${API}/payment/create-order/`, {
+                method: 'POST', headers: auth, body: JSON.stringify({ cart_id: [cartItem.id] }),
+            });
+            const data = await orderRes.json().catch(() => ({}));
+
+            if (orderRes.ok) {
+                showToast('Order placed!', 'success');
+                onClose();
+                router.push('/orders');
+            } else if (orderRes.status === 400 && String(data.error || '').toLowerCase().includes('insufficient')) {
+                showToast(data.error || 'Insufficient funds — top up your wallet.', 'error');
+                onClose();
+                router.push('/wallet');
+            } else {
+                showToast(data.error || 'Payment failed. Please try again.', 'error');
+            }
+        } catch (e) {
+            showToast('Network error', 'error');
+        } finally {
+            setBuyingNow(false);
+        }
+    };
+
     const isOwnProduct = type === 'product' && user && item.vendor_id && String(user.id) === String(item.vendor_id);
+
+    // Start replying to a comment or a reply. Replies always attach to the
+    // top-level comment; replying to a reply prefills an @mention (TikTok-style).
+    const startKauchReply = (r: any, isReply: boolean) => {
+        const topId = isReply ? r.parent : r.id;
+        setReplyingTo({ id: topId, username: r.user_name });
+        if (isReply) setReviewText(`@${r.user_name} `);
+        setExpandedThreads(prev => new Set(prev).add(topId));
+    };
+
+    // One kauch comment row (used for both top-level comments and replies).
+    const renderKauchComment = (r: any, isReply: boolean) => (
+        <div key={r.id} className="flex gap-2.5">
+            <div className={`${isReply ? 'w-7 h-7' : 'w-9 h-9 sm:w-8 sm:h-8'} rounded-full overflow-hidden shrink-0 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold`}>
+                {r.avatar_url
+                    ? <img src={r.avatar_url} alt="" className="w-full h-full object-cover" />
+                    : (r.user_name || 'U').charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="bg-gray-50 dark:bg-zinc-800 rounded-2xl px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm sm:text-xs font-bold text-gray-900 dark:text-white truncate">{r.user_name || 'User'}</span>
+                        <span className="text-xs sm:text-[10px] text-gray-400 dark:text-gray-500 shrink-0">{timeAgo(r.created_at)}</span>
+                    </div>
+                    <p className="text-base sm:text-sm text-gray-700 dark:text-gray-300 mt-0.5 leading-snug break-words">{r.comment}</p>
+                </div>
+                {user && (
+                    <button
+                        onClick={() => startKauchReply(r, isReply)}
+                        className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-blue-600 mt-1 ml-2"
+                    >
+                        Reply
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+
+    // Always a bottom sheet that slides up from under on mobile, and a right-side
+    // drawer on desktop (md+). The comments sheet is shorter; the full product
+    // view (more content) gets a taller sheet.
+    const sheetHeight = commentsOnly ? 'h-[72vh]' : 'h-[90vh]';
+    const panelClass = `fixed z-[120] flex flex-col bg-white dark:bg-zinc-900 transform transition-transform duration-300 ease-in-out
+           inset-x-0 bottom-0 mx-auto max-w-2xl ${sheetHeight} rounded-t-2xl shadow-[0_-10px_30px_rgba(0,0,0,0.25)]
+           md:inset-y-0 md:right-0 md:!left-auto md:mx-0 md:max-w-none md:w-[420px] md:h-full md:rounded-none md:shadow-[-10px_0_30px_rgba(0,0,0,0.15)]
+           ${isOpen ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}`;
 
     return (
         <div className="dark contents">
-        <div className={`fixed inset-y-0 right-0 z-[120] w-[92vw] sm:w-[420px] bg-white dark:bg-zinc-900 shadow-[-10px_0_30px_rgba(0,0,0,0.15)] transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
+        <div className={panelClass}>
+            {/* Grab handle (mobile bottom-sheet only; hidden on desktop drawer) */}
+            <div className="flex md:hidden justify-center pt-2.5 pb-1 shrink-0">
+                <span className="w-10 h-1.5 rounded-full bg-gray-300 dark:bg-zinc-700" />
+            </div>
             {/* Header */}
             <div className="flex items-center justify-between p-4 sm:p-4 border-b border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-10">
                 <h2 className="text-xl sm:text-lg font-bold text-gray-900 dark:text-white capitalize">{commentsOnly ? 'Comments' : type === 'product' ? 'Product Details' : type === 'kauch' ? 'Post Details' : 'Content Details'}</h2>
@@ -397,6 +516,12 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
                                 <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 font-semibold">Category</div>
                                 <div className="text-base sm:text-sm font-bold text-gray-900 dark:text-white">{item.category || 'General'}</div>
                             </div>
+                            {item.specs && Object.entries(item.specs).map(([k, v]) => (
+                                <div key={k} className="bg-gray-50 dark:bg-zinc-800 p-3 rounded-lg border border-gray-100 dark:border-zinc-800">
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 font-semibold">{k}</div>
+                                    <div className="text-base sm:text-sm font-bold text-gray-900 dark:text-white break-words">{String(v)}</div>
+                                </div>
+                            ))}
                         </div>
                     </>
                 )}
@@ -466,6 +591,36 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
                             <div className="text-center py-6 bg-gray-50 dark:bg-zinc-800 rounded-lg border border-gray-100 dark:border-zinc-800 border-dashed">
                                 <p className="text-base sm:text-sm text-gray-500 dark:text-gray-400 italic">No {type === 'product' ? 'reviews' : 'comments'} yet.</p>
                             </div>
+                        ) : type === 'kauch' ? (
+                            // Threaded (TikTok-style): top-level comments; replies are
+                            // collapsed behind a "View N replies" toggle with a thread line.
+                            reviews.filter(r => !r.parent).map((r) => {
+                                const replies = reviews.filter(rep => rep.parent === r.id);
+                                const expanded = expandedThreads.has(r.id);
+                                return (
+                                    <div key={r.id} className="flex flex-col gap-2">
+                                        {renderKauchComment(r, false)}
+                                        {replies.length > 0 && (
+                                            <div className="ml-11 sm:ml-10">
+                                                {!expanded ? (
+                                                    <button onClick={() => toggleThread(r.id)} className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                                                        <span className="w-6 h-px bg-gray-300 dark:bg-zinc-600" />
+                                                        View {replies.length} {replies.length > 1 ? 'replies' : 'reply'}
+                                                    </button>
+                                                ) : (
+                                                    <div className="flex flex-col gap-2 border-l-2 border-gray-200 dark:border-zinc-700 pl-3">
+                                                        {replies.map(rep => renderKauchComment(rep, true))}
+                                                        <button onClick={() => toggleThread(r.id)} className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                                                            <span className="w-6 h-px bg-gray-300 dark:bg-zinc-600" />
+                                                            Hide replies
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })
                         ) : (
                             reviews.map((r, idx) => (
                                 <div key={idx} className="flex gap-3 bg-gray-50 dark:bg-zinc-800 p-3 rounded-lg">
@@ -496,17 +651,25 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
                                         <StarRating rating={reviewRating} onRate={setReviewRating} interactive size="text-lg sm:text-sm" />
                                     </div>
                                 )}
+                                {type === 'kauch' && replyingTo && (
+                                    <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-md text-xs">
+                                        <span>Replying to <b>@{replyingTo.username}</b></span>
+                                        <button type="button" onClick={() => setReplyingTo(null)} className="hover:text-blue-900 dark:hover:text-blue-100">
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                )}
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
-                                        placeholder={`Add a ${type === 'product' ? 'review' : 'comment'}...`}
+                                        placeholder={type === 'kauch' && replyingTo ? `Reply to @${replyingTo.username}...` : `Add a ${type === 'product' ? 'review' : 'comment'}...`}
                                         value={reviewText}
                                         onChange={(e) => setReviewText(e.target.value)}
                                         className="flex-1 border border-gray-300 dark:border-zinc-700 rounded-md px-3 py-2.5 sm:py-2 text-base sm:text-sm text-gray-900 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 bg-white dark:bg-zinc-800"
                                     />
                                     <button
                                         type="submit"
-                                        disabled={submittingReview || reviewText.trim().length < 3 || (type === 'product' && reviewRating === 0)}
+                                        disabled={submittingReview || reviewText.trim().length < (type === 'kauch' ? 1 : 3) || (type === 'product' && reviewRating === 0)}
                                         className="p-2.5 sm:p-2 bg-blue-600 text-white rounded-md disabled:opacity-50 flex items-center justify-center transition-colors hover:bg-blue-700"
                                     >
                                         {submittingReview ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : <Send size={18} />}
@@ -551,14 +714,25 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
                     </button>
                 </div>
                 
-                {type === 'product' && (
-                    <button 
-                        className="w-full flex justify-center items-center gap-2 py-3.5 sm:py-3 bg-amber-400 hover:bg-amber-500 text-white rounded-lg font-bold text-base sm:text-sm shadow-sm transition-colors"
-                        onClick={() => addToCart(item, 1)}
-                    >
-                        <ShoppingCart size={20} />
-                        Add to Cart
-                    </button>
+                {type === 'product' && !isOwnProduct && (
+                    <div className="flex items-center gap-3">
+                        <button
+                            className="flex-1 flex justify-center items-center gap-2 py-3.5 sm:py-3 bg-amber-400 hover:bg-amber-500 text-white rounded-lg font-bold text-base sm:text-sm shadow-sm transition-colors"
+                            onClick={() => addToCart(item, 1)}
+                        >
+                            <ShoppingCart size={20} />
+                            Add to Cart
+                        </button>
+                        <button
+                            className="flex-1 flex justify-center items-center gap-2 py-3.5 sm:py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg font-bold text-base sm:text-sm shadow-sm transition-colors"
+                            onClick={handleBuyNow}
+                            disabled={buyingNow}
+                        >
+                            {buyingNow
+                                ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                : <><Zap size={20} /> Buy Now</>}
+                        </button>
+                    </div>
                 )}
 
                 {!isOwnProduct && type !== 'kauch' && (
