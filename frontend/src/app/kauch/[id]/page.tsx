@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useAuthGate } from '@/context/AuthGateContext';
-import { Heart, MessageCircle, Share2, MoreHorizontal, ShoppingBag, ArrowLeft, Users, Send } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, ShoppingBag, ArrowLeft, Users, Send, Mic, X } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination } from 'swiper/modules';
 import 'swiper/css';
@@ -14,6 +14,7 @@ interface Comment {
   id: number;
   user: { id: number; username: string; avatar_url: string };
   text: string;
+  parent?: number | null;
   created_at: string;
 }
 
@@ -27,7 +28,7 @@ interface TaggedProduct {
 interface Post {
   id: number;
   description: string;
-  media_type: 'image' | 'video';
+  media_type: 'image' | 'video' | 'audio';
   media_url: string;
   media_urls?: string[];
   tagged_products: TaggedProduct[];
@@ -80,6 +81,8 @@ export default function KauchProfile() {
   const [commentLoading, setCommentLoading] = useState<number | null>(null);
   const [commentDrafts, setCommentDrafts] = useState<Record<number, string>>({});
   const [commentSubmitting, setCommentSubmitting] = useState<number | null>(null);
+  // Reply target per post: { [postId]: { id, username } } (id = top-level comment).
+  const [replyTo, setReplyTo] = useState<Record<number, { id: number; username: string } | null>>({});
 
   useEffect(() => {
     if (!kauchId) return;
@@ -220,6 +223,7 @@ export default function KauchProfile() {
     if (!text) return;
 
     setCommentSubmitting(postId);
+    const parent = replyTo[postId]?.id ?? null;
     try {
       const res = await fetch(`${API}/kauch/posts/${postId}/comments/`, {
         method: 'POST',
@@ -227,12 +231,13 @@ export default function KauchProfile() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${user.access}`,
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, parent }),
       });
       if (res.ok) {
         const created: Comment = await res.json();
         setCommentsMap(prev => ({ ...prev, [postId]: [created, ...(prev[postId] || [])] }));
         setCommentDrafts(prev => ({ ...prev, [postId]: '' }));
+        setReplyTo(prev => ({ ...prev, [postId]: null }));
         setPosts(prev => prev.map(p =>
           p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p
         ));
@@ -349,26 +354,47 @@ export default function KauchProfile() {
                   : (post.media_url ? [post.media_url] : []);
                 if (images.length === 0) return null;
 
-                return (
-                  <div className="w-full aspect-square sm:aspect-[4/5] bg-gray-100 dark:bg-zinc-800 relative overflow-hidden">
-                    {post.media_type === 'video' ? (
+                // Video keeps a fixed frame; a single image shows at its natural
+                // aspect (no crop, no letterbox); a carousel uses object-contain in
+                // a frame so every slide is the same height and nothing is cropped.
+                if (post.media_type === 'audio') {
+                  return (
+                    <div className="w-full p-5 bg-gray-50 dark:bg-zinc-800/60 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+                        <Mic size={22} className="text-white" />
+                      </div>
+                      <audio src={images[0]} controls className="flex-1 min-w-0" />
+                    </div>
+                  );
+                }
+                if (post.media_type === 'video') {
+                  return (
+                    <div className="w-full aspect-square sm:aspect-[4/5] bg-gray-100 dark:bg-zinc-800 relative overflow-hidden">
                       <video src={images[0]} className="w-full h-full object-cover" controls />
-                    ) : images.length === 1 ? (
-                      <img src={images[0]} alt="Post media" className="w-full h-full object-cover" />
-                    ) : (
-                      <Swiper
-                        modules={[Pagination]}
-                        slidesPerView={1}
-                        pagination={{ clickable: true }}
-                        className="w-full h-full kauch-post-carousel"
-                      >
-                        {images.map((src, i) => (
-                          <SwiperSlide key={`${src}-${i}`}>
-                            <img src={src} alt={`Post media ${i + 1}`} className="w-full h-full object-cover" />
-                          </SwiperSlide>
-                        ))}
-                      </Swiper>
-                    )}
+                    </div>
+                  );
+                }
+                if (images.length === 1) {
+                  return (
+                    <div className="w-full bg-black flex justify-center">
+                      <img src={images[0]} alt="Post media" className="w-full h-auto max-h-[85vh] object-contain" />
+                    </div>
+                  );
+                }
+                return (
+                  <div className="w-full aspect-square sm:aspect-[4/5] bg-black relative overflow-hidden">
+                    <Swiper
+                      modules={[Pagination]}
+                      slidesPerView={1}
+                      pagination={{ clickable: true }}
+                      className="w-full h-full kauch-post-carousel"
+                    >
+                      {images.map((src, i) => (
+                        <SwiperSlide key={`${src}-${i}`}>
+                          <img src={src} alt={`Post media ${i + 1}`} className="w-full h-full object-contain" />
+                        </SwiperSlide>
+                      ))}
+                    </Swiper>
                   </div>
                 );
               })()}
@@ -392,13 +418,21 @@ export default function KauchProfile() {
               {openComments === post.id && (
                 <div className="px-4 py-4 border-b border-gray-50 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800/40">
                   {/* Composer */}
+                  {replyTo[post.id] && (
+                    <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-md text-xs mb-2">
+                      <span>Replying to <b>@{replyTo[post.id]!.username}</b></span>
+                      <button onClick={() => setReplyTo(prev => ({ ...prev, [post.id]: null }))} className="hover:text-blue-900 dark:hover:text-blue-100">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
                   <div className="flex gap-2 mb-4">
                     <input
                       type="text"
                       value={commentDrafts[post.id] || ''}
                       onChange={(e) => setCommentDrafts(prev => ({ ...prev, [post.id]: e.target.value }))}
                       onKeyDown={(e) => { if (e.key === 'Enter') submitComment(post.id); }}
-                      placeholder={user ? 'Add a comment...' : 'Log in to comment'}
+                      placeholder={!user ? 'Log in to comment' : replyTo[post.id] ? `Reply to @${replyTo[post.id]!.username}...` : 'Add a comment...'}
                       disabled={!user}
                       className="flex-1 border border-gray-300 dark:border-zinc-700 rounded-full px-4 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 bg-white dark:bg-zinc-800 placeholder-gray-400 dark:placeholder-gray-500 disabled:bg-gray-100 dark:disabled:bg-zinc-900"
                     />
@@ -413,27 +447,46 @@ export default function KauchProfile() {
                     </button>
                   </div>
 
-                  {/* List */}
+                  {/* List (threaded: top-level comments with their replies) */}
                   {commentLoading === post.id ? (
                     <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">Loading comments...</p>
                   ) : (commentsMap[post.id]?.length ?? 0) === 0 ? (
                     <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-2 italic">No comments yet. Be the first!</p>
                   ) : (
                     <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
-                      {commentsMap[post.id].map(comment => (
-                        <div key={comment.id} className="flex gap-3">
-                          <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-700 shrink-0">
-                            <img src={comment.user?.avatar_url || '/placeholder.svg'} alt="" className="w-full h-full object-cover" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="bg-white dark:bg-zinc-900 rounded-2xl px-3 py-2 border border-gray-100 dark:border-zinc-800">
-                              <p className="text-xs font-bold text-gray-900 dark:text-white">{comment.user?.username || 'User'}</p>
-                              <p className="text-sm text-gray-700 dark:text-gray-300 break-words">{comment.text}</p>
+                      {commentsMap[post.id].filter(c => !c.parent).map(comment => {
+                        const replies = commentsMap[post.id].filter(c => c.parent === comment.id);
+                        const renderRow = (c: Comment, isReply: boolean) => (
+                          <div key={c.id} className={`flex gap-3 ${isReply ? 'ml-8' : ''}`}>
+                            <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-700 shrink-0">
+                              <img src={c.user?.avatar_url || '/placeholder.svg'} alt="" className="w-full h-full object-cover" />
                             </div>
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 ml-1">{timeAgo(comment.created_at)}</p>
+                            <div className="flex-1 min-w-0">
+                              <div className="bg-white dark:bg-zinc-900 rounded-2xl px-3 py-2 border border-gray-100 dark:border-zinc-800">
+                                <p className="text-xs font-bold text-gray-900 dark:text-white">{c.user?.username || 'User'}</p>
+                                <p className="text-sm text-gray-700 dark:text-gray-300 break-words">{c.text}</p>
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 ml-1">
+                                <span className="text-[11px] text-gray-400 dark:text-gray-500">{timeAgo(c.created_at)}</span>
+                                {user && (
+                                  <button
+                                    onClick={() => setReplyTo(prev => ({ ...prev, [post.id]: { id: isReply ? (c.parent as number) : c.id, username: c.user?.username || 'User' } }))}
+                                    className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 hover:text-blue-600"
+                                  >
+                                    Reply
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                        return (
+                          <div key={comment.id} className="space-y-2">
+                            {renderRow(comment, false)}
+                            {replies.map(rep => renderRow(rep, true))}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

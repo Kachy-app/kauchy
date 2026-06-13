@@ -18,6 +18,7 @@ interface Product {
     image_url?: string[];
     quantity?: number;
     category?: string;
+    specs?: Record<string, string>;
     rating?: number;
     review_count?: number;
     likes?: number;
@@ -314,6 +315,20 @@ export default function ProductModal({ product, onClose, addToCart }: ProductMod
                             <h3 className="text-base text-gray-900 dark:text-white mb-2 font-semibold">Description</h3>
                             <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{product.description || 'No description available.'}</p>
                         </div>
+
+                        {product.specs && Object.keys(product.specs).length > 0 && (
+                            <div>
+                                <h3 className="text-base text-gray-900 dark:text-white mb-2 font-semibold">Details</h3>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {Object.entries(product.specs).map(([k, v]) => (
+                                        <div key={k} className="flex flex-col p-3 bg-gray-50 dark:bg-zinc-800 rounded-lg">
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{k}</span>
+                                            <span className="text-sm font-semibold text-gray-900 dark:text-white break-words">{String(v)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 dark:bg-zinc-800 rounded-lg">
                             <div className="flex flex-col">

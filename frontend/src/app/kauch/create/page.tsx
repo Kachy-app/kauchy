@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { AuthWall } from '@/context/AuthGateContext';
 import { Image as ImageIcon, Video, Plus, ArrowLeft, X } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import VoiceRecorder from '@/components/VoiceRecorder';
 
 interface Kauch {
   id: number;
@@ -43,6 +44,7 @@ export default function CreateKauchContent() {
   const mediaInputRef = useRef<HTMLInputElement>(null);
 
   const isVideoPost = mediaFiles.length > 0 && mediaFiles[0].type.startsWith('video');
+  const isAudioPost = mediaFiles.length > 0 && mediaFiles[0].type.startsWith('audio');
 
   // New Kauch State
   const [showCreateKauch, setShowCreateKauch] = useState(false);
@@ -280,71 +282,106 @@ export default function CreateKauchContent() {
               {/* Media Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
-                  <span>Media — one video or multiple images *</span>
+                  <span>Media — one video, multiple images, or a voice note *</span>
                   {mediaFiles.length > 0 && (
                     <span className="text-xs font-normal text-gray-500">
-                      {isVideoPost ? '1 video' : `${mediaFiles.length} image${mediaFiles.length > 1 ? 's' : ''}`}
+                      {isVideoPost ? '1 video' : isAudioPost ? 'voice note' : `${mediaFiles.length} image${mediaFiles.length > 1 ? 's' : ''}`}
                     </span>
                   )}
                 </label>
 
-                {/* Dropzone */}
-                <div
-                  onClick={() => mediaInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded-xl p-8 flex flex-col items-center justify-center bg-gray-50 dark:bg-zinc-950 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer group"
-                >
-                  <div className="flex items-center gap-4 mb-3 text-gray-400 group-hover:text-blue-500 transition-colors">
-                    <ImageIcon size={32} />
-                    <span className="text-gray-300">|</span>
-                    <Video size={32} />
+                {/* Voice note recorded → audio preview only (a voice post is voice-only) */}
+                {isAudioPost ? (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800">
+                    <audio src={URL.createObjectURL(mediaFiles[0])} controls className="flex-1 min-w-0" />
+                    <button
+                      type="button"
+                      onClick={() => removeMediaAt(0)}
+                      className="p-2 rounded-full bg-gray-100 dark:bg-zinc-800 text-red-500 hover:bg-gray-200 dark:hover:bg-zinc-700 shrink-0"
+                      title="Remove voice note"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {mediaFiles.length === 0
-                      ? 'Click to upload'
-                      : isVideoPost ? 'Replace video' : 'Add more images'}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">MP4, JPG, PNG (Max 50MB each)</p>
-                  <input
-                    ref={mediaInputRef}
-                    type="file"
-                    className="hidden"
-                    accept="video/*,image/*"
-                    multiple
-                    onChange={handleMediaSelect}
-                  />
-                </div>
+                ) : (
+                  <>
+                    {/* Dropzone for image/video */}
+                    <div
+                      onClick={() => mediaInputRef.current?.click()}
+                      className="w-full border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded-xl p-8 flex flex-col items-center justify-center bg-gray-50 dark:bg-zinc-950 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-4 mb-3 text-gray-400 group-hover:text-blue-500 transition-colors">
+                        <ImageIcon size={32} />
+                        <span className="text-gray-300">|</span>
+                        <Video size={32} />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        {mediaFiles.length === 0
+                          ? 'Click to upload'
+                          : isVideoPost ? 'Replace video' : 'Add more images'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">MP4, JPG, PNG (Max 50MB each)</p>
+                      <input
+                        ref={mediaInputRef}
+                        type="file"
+                        className="hidden"
+                        accept="video/*,image/*"
+                        multiple
+                        onChange={handleMediaSelect}
+                      />
+                    </div>
 
-                {/* Previews of chosen files, each removable */}
-                {mediaFiles.length > 0 && (
-                  <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {mediaFiles.map((file, index) => {
-                      const url = URL.createObjectURL(file);
-                      const isVid = file.type.startsWith('video');
-                      return (
-                        <div key={`${file.name}-${index}`} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-zinc-800 group">
-                          {isVid ? (
-                            <video src={url} className="w-full h-full object-cover" muted />
-                          ) : (
-                            <img src={url} alt={file.name} className="w-full h-full object-cover" />
-                          )}
-                          {/* Order badge (images only — videos are always solo) */}
-                          {!isVid && (
-                            <span className="absolute top-1 left-1 w-5 h-5 flex items-center justify-center bg-black/60 text-white text-[10px] font-bold rounded-full">
-                              {index + 1}
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => removeMediaAt(index)}
-                            className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors"
-                            title="Remove"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
+                    {/* Or record a voice note (only when no image/video chosen yet) */}
+                    {mediaFiles.length === 0 && (
+                      <div className="mt-3 flex items-center gap-3">
+                        <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800" />
+                        <span className="text-xs text-gray-400">or</span>
+                        <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800" />
+                      </div>
+                    )}
+                    {mediaFiles.length === 0 && (
+                      <div className="mt-3 flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800">
+                        <VoiceRecorder
+                          onRecorded={(file) => setMediaFiles([file])}
+                          className="w-11 h-11 bg-blue-600 text-white hover:bg-blue-700"
+                        />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Record a voice note</span>
+                      </div>
+                    )}
+
+                    {/* Previews of chosen image/video files, each removable */}
+                    {mediaFiles.length > 0 && (
+                      <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {mediaFiles.map((file, index) => {
+                          const url = URL.createObjectURL(file);
+                          const isVid = file.type.startsWith('video');
+                          return (
+                            <div key={`${file.name}-${index}`} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-zinc-800 group">
+                              {isVid ? (
+                                <video src={url} className="w-full h-full object-cover" muted />
+                              ) : (
+                                <img src={url} alt={file.name} className="w-full h-full object-cover" />
+                              )}
+                              {/* Order badge (images only — videos are always solo) */}
+                              {!isVid && (
+                                <span className="absolute top-1 left-1 w-5 h-5 flex items-center justify-center bg-black/60 text-white text-[10px] font-bold rounded-full">
+                                  {index + 1}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => removeMediaAt(index)}
+                                className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors"
+                                title="Remove"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 

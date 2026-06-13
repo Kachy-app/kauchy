@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Play, Heart, MessageCircle, Share2, UserCircle, ShoppingBag, Bookmark } from 'lucide-react';
+import { Play, Heart, MessageCircle, Share2, UserCircle, ShoppingBag, Bookmark, ChevronUp, X, Mic } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useAuthGate } from '@/context/AuthGateContext';
@@ -16,6 +16,11 @@ import type { Swiper as SwiperType } from 'swiper';
 import 'swiper/css';
 import 'swiper/css/virtual';
 
+// Module-level cache of the home feed so returning to this page (e.g. after opening
+// a product) restores instantly instead of refetching + resetting scroll. Cleared
+// on full page reload / logout (logout does a hard navigation).
+let feedCache: { items: { type: 'kauch'; item: any }[]; index: number; uid: any } | null = null;
+
 function FeedContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -26,12 +31,16 @@ function FeedContent() {
     const initialType = searchParams.get('type');
     const initialId = searchParams.get('id');
     const vendorId = searchParams.get('vendorId');
+    const hasParams = !!(initialType || initialId || vendorId);
 
-    // Homepage feed renders Kauch posts; each post may reference products.
-    const [feedItems, setFeedItems] = useState<{ type: 'kauch'; item: any }[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Restore from the module cache on mount (lazy init) so there's no spinner/flash
+    // or scroll reset when returning to the feed.
+    const canRestore = !hasParams && !!feedCache;
+    const [feedItems, setFeedItems] = useState<{ type: 'kauch'; item: any }[]>(() => canRestore ? feedCache!.items : []);
+    const [loading, setLoading] = useState(!canRestore);
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [activeItemIndex, setActiveItemIndex] = useState(0);
+    const [productSheetOpen, setProductSheetOpen] = useState(false);
+    const [activeItemIndex, setActiveItemIndex] = useState(() => canRestore ? feedCache!.index : 0);
 
     const swiperRef = useRef<SwiperType | null>(null);
     const viewedItemsRef = useRef<Set<string>>(new Set());
@@ -56,16 +65,18 @@ function FeedContent() {
     }, []);
 
     const toggleBookmark = useCallback((item: any) => {
-        setBookmarks(prev => {
-            const exists = prev.includes(item.id);
-            const next = exists ? prev.filter(id => id !== item.id) : [...prev, item.id];
-            try { localStorage.setItem('kauch_bookmarks', JSON.stringify(next)); } catch { /* ignore */ }
-            showToast(exists ? 'Removed from bookmarks' : 'Saved to bookmarks', 'success');
-            return next;
-        });
-    }, [showToast]);
+        // Side effects (toast, storage) must stay OUT of the state updater — React
+        // calls updaters twice in dev StrictMode, which double-fired the toast.
+        const exists = bookmarks.includes(item.id);
+        const next = exists ? bookmarks.filter(id => id !== item.id) : [...bookmarks, item.id];
+        setBookmarks(next);
+        try { localStorage.setItem('kauch_bookmarks', JSON.stringify(next)); } catch { /* ignore */ }
+        showToast(exists ? 'Removed from bookmarks' : 'Saved to bookmarks', 'success');
+    }, [bookmarks, showToast]);
 
     useEffect(() => {
+        // Skip refetch when we already have a cached feed for this same user.
+        if (!hasParams && feedCache && feedCache.uid === (user?.id ?? null)) return;
         loadFeedData();
     }, [user, initialType, initialId, vendorId]);
 
@@ -109,6 +120,11 @@ function FeedContent() {
             }));
 
             setFeedItems(mapped);
+            // Cache for instant restore when returning to the feed.
+            if (!hasParams) {
+                feedCache = { items: mapped, index: 0, uid: user?.id ?? null };
+                setActiveItemIndex(0);
+            }
         } catch (error) {
             console.error("Error loading feed:", error);
             setFeedItems([]);
@@ -144,11 +160,17 @@ function FeedContent() {
         }
     };
 
-    // Open a referenced product in the full-screen /feed experience.
-    const openProduct = (product: any) => {
+    // Open a product feed containing ONLY this post's carousel products, starting
+    // at the tapped one. The id list is handed to /feed via sessionStorage.
+    const openProduct = (product: any, list?: any[]) => {
         const productId = product._id || product.id;
         if (!productId) return;
-        router.push(`/feed?type=product&id=${productId}`);
+        try {
+            const source = (list && list.length ? list : [product]);
+            const ids = source.map((p: any) => p._id || p.id).filter(Boolean);
+            sessionStorage.setItem('carouselFeed', JSON.stringify({ ids, clicked: productId }));
+        } catch { /* ignore */ }
+        router.push('/feed?source=carousel');
     };
 
     const handleLike = useCallback(async (postId: number) => {
@@ -197,6 +219,8 @@ function FeedContent() {
 
     const handleSlideChange = (swiper: SwiperType) => {
         setActiveItemIndex(swiper.activeIndex);
+        // Remember position so returning to the feed lands on the same post.
+        if (feedCache) feedCache.index = swiper.activeIndex;
     };
 
     // Share a post: native OS share sheet on mobile, clipboard fallback elsewhere.
@@ -313,6 +337,7 @@ function FeedContent() {
                 direction="vertical"
                 slidesPerView={1}
                 spaceBetween={0}
+                initialSlide={activeItemIndex}
                 mousewheel={true}
                 keyboard={{ enabled: true }}
                 virtual={{ enabled: true, addSlidesAfter: 2, addSlidesBefore: 2 }}
@@ -328,12 +353,21 @@ function FeedContent() {
                     // Lift the caption/action rail above the product strip when present.
                     const bottomOffset = hasProducts ? 'bottom-[108px]' : 'bottom-6';
 
+                    // Single media (one image OR a video) sizes to its natural aspect
+                    // on desktop (capped), so it fills its frame with no blank space.
+                    // Only multi-image carousels keep a fixed portrait frame.
+                    const mediaImages = Array.isArray(feedObj.item.media_urls) && feedObj.item.media_urls.length > 0
+                        ? feedObj.item.media_urls
+                        : (feedObj.item.media_url ? [feedObj.item.media_url] : []);
+                    const isCarousel = feedObj.item.media_type === 'image' && mediaImages.length > 1;
+                    const frameClass = !isCarousel
+                        ? 'md:w-auto md:h-auto md:max-h-[92vh] md:max-w-[88vw]'
+                        : 'md:w-auto md:h-[94%] md:aspect-[9/16] overflow-hidden md:rounded-2xl md:shadow-2xl';
+
                     return (
                         <SwiperSlide key={`kauch-${feedObj.item.id}-${index}`} virtualIndex={index}>
                             <div
-                                className="relative flex items-center justify-center bg-zinc-950 overflow-hidden
-                                           w-full h-full
-                                           md:w-auto md:h-[94%] md:aspect-[9/16] md:rounded-2xl md:shadow-2xl"
+                                className={`relative flex items-center justify-center bg-zinc-950 w-full h-full ${frameClass}`}
                                 onPointerDown={(e) => onMediaPointerDown(e, feedObj.item)}
                                 onPointerMove={onMediaPointerMove}
                                 onPointerUp={() => onMediaPointerUp(feedObj.item)}
@@ -422,15 +456,27 @@ function FeedContent() {
                                 {hasProducts && (
                                     <div className="absolute bottom-0 left-0 w-full z-20 pointer-events-auto">
                                         <div className="bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-8 pb-3 px-3">
-                                            <div className="flex items-center gap-1.5 mb-2 px-1 text-white/90">
-                                                <ShoppingBag size={14} />
-                                                <span className="text-xs font-semibold uppercase tracking-wide">Shop this post</span>
+                                            <div className="flex items-center justify-between mb-2 px-1 text-white/90">
+                                                <div className="flex items-center gap-1.5">
+                                                    <ShoppingBag size={14} />
+                                                    <span className="text-xs font-semibold uppercase tracking-wide">Shop this post</span>
+                                                </div>
+                                                {feedObj.item.products.length > 1 && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setProductSheetOpen(true); }}
+                                                        className="flex items-center gap-1 text-xs font-semibold text-white/90 hover:text-white"
+                                                        title="See all products"
+                                                    >
+                                                        <span>See all {feedObj.item.products.length}</span>
+                                                        <ChevronUp size={18} className="animate-bounce" />
+                                                    </button>
+                                                )}
                                             </div>
                                             <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-0.5" style={{ WebkitOverflowScrolling: 'touch' }}>
                                                 {feedObj.item.products.map((product: any) => (
                                                     <button
                                                         key={product.id || product._id}
-                                                        onClick={(e) => { e.stopPropagation(); openProduct(product); }}
+                                                        onClick={(e) => { e.stopPropagation(); openProduct(product, feedObj.item.products); }}
                                                         className="shrink-0 w-[170px] flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-xl p-1.5 shadow-lg hover:bg-white active:scale-[0.98] transition-all text-left"
                                                     >
                                                         <img
@@ -470,6 +516,55 @@ function FeedContent() {
                     addToCart={addToCart}
                     commentsOnly
                 />
+            )}
+
+            {/* Expanded product list — opened by the up arrow on the product strip.
+                Same geometry as the comments sheet, but with a transparent/frosted bg. */}
+            <div
+                className={`fixed inset-0 z-[110] transition-opacity duration-300 ${productSheetOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setProductSheetOpen(false)}
+            />
+            {activeItem && Array.isArray(activeItem.item.products) && (
+                <div
+                    className={`fixed z-[120] flex flex-col bg-black/30 backdrop-blur-xl border-white/10 transform transition-transform duration-300 ease-in-out
+                                inset-x-0 bottom-0 mx-auto max-w-2xl h-[60vh] rounded-t-2xl border-t
+                                md:inset-y-0 md:right-0 md:!left-auto md:mx-0 md:max-w-none md:w-[420px] md:h-full md:rounded-none md:border-t-0 md:border-l
+                                ${productSheetOpen ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}`}
+                >
+                    {/* Grab handle (mobile only) */}
+                    <div className="flex md:hidden justify-center pt-2.5 pb-1 shrink-0">
+                        <span className="w-10 h-1.5 rounded-full bg-white/40" />
+                    </div>
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 shrink-0 text-white">
+                        <h2 className="text-base font-bold flex items-center gap-2">
+                            <ShoppingBag size={18} /> Products ({activeItem.item.products.length})
+                        </h2>
+                        <button onClick={() => setProductSheetOpen(false)} className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
+                            <X size={20} />
+                        </button>
+                    </div>
+                    {/* Scrollable list */}
+                    <div className="flex-1 overflow-y-auto px-3 pb-6 flex flex-col gap-2.5">
+                        {activeItem.item.products.map((product: any) => (
+                            <button
+                                key={product.id || product._id}
+                                onClick={() => { setProductSheetOpen(false); openProduct(product, activeItem.item.products); }}
+                                className="w-full flex items-center gap-3 bg-white/95 backdrop-blur-sm rounded-xl p-2 shadow-lg hover:bg-white active:scale-[0.99] transition-all text-left"
+                            >
+                                <img
+                                    src={product.image_url?.[0] || '/placeholder.svg'}
+                                    alt={product.product_name}
+                                    className="w-16 h-16 rounded-lg object-cover shrink-0 bg-gray-100"
+                                />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-semibold text-gray-900 line-clamp-2">{product.product_name}</p>
+                                    <p className="text-base font-bold text-blue-600 mt-0.5">₦{product.price}</p>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -521,6 +616,21 @@ function ContentFeedView({ content, isActive }: { content: any, isActive: boolea
         }
     };
 
+    if (content.media_type === 'audio') {
+        // Voice-note post: a centered audio card on the dark feed background.
+        return (
+            <div className="w-full h-full flex items-center justify-center p-6 md:w-[440px] md:h-auto">
+                <div className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-3xl p-8 flex flex-col items-center gap-5 border border-white/10">
+                    <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center shadow-lg">
+                        <Mic size={44} className="text-white" />
+                    </div>
+                    <p className="text-white/80 text-sm font-semibold uppercase tracking-wide">Voice note</p>
+                    <audio src={mediaSrc} controls className="w-full" />
+                </div>
+            </div>
+        );
+    }
+
     if (!isVideo) {
         // Image post: may hold one or many images. Fall back to the single
         // media_url for older posts that predate media_urls.
@@ -534,11 +644,17 @@ function ContentFeedView({ content, isActive }: { content: any, isActive: boolea
             );
         }
 
-        // Single image: no carousel needed.
+        // Single image. On mobile it fills the screen (object-cover). On desktop it
+        // sizes to its natural aspect (capped), so the wrapper hugs it with no blank
+        // space — wide images render wide, tall images render tall.
         if (images.length === 1) {
             return (
-                <div className="w-full h-full relative">
-                    <img src={images[0]} alt={content.caption || 'Post'} className="w-full h-full object-cover" />
+                <div className="w-full h-full relative md:w-auto md:h-auto">
+                    <img
+                        src={images[0]}
+                        alt={content.caption || 'Post'}
+                        className="w-full h-full object-contain md:w-auto md:h-auto md:max-h-[92vh] md:max-w-[88vw] md:rounded-2xl md:shadow-2xl"
+                    />
                 </div>
             );
         }
@@ -548,11 +664,11 @@ function ContentFeedView({ content, isActive }: { content: any, isActive: boolea
     }
 
     return (
-        <div className="w-full h-full relative" onClick={togglePlay}>
+        <div className="w-full h-full relative md:w-auto md:h-auto" onClick={togglePlay}>
             <video
                 ref={videoRef}
                 src={mediaSrc}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover md:w-auto md:h-auto md:max-h-[92vh] md:max-w-[88vw] md:object-contain md:rounded-2xl md:shadow-2xl"
                 loop
                 playsInline
                 muted={false}
@@ -594,7 +710,7 @@ function ImageCarousel({ images, caption }: { images: string[]; caption?: string
             >
                 {images.map((src, i) => (
                     <SwiperSlide key={`${src}-${i}`}>
-                        <img src={src} alt={caption || `Image ${i + 1}`} className="w-full h-full object-cover" />
+                        <img src={src} alt={caption || `Image ${i + 1}`} className="w-full h-full object-contain" />
                     </SwiperSlide>
                 ))}
             </Swiper>

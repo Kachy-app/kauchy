@@ -12,6 +12,7 @@ from notification.utils import send_notification_to_user
 import os
 import time
 import uuid
+import json
 from decimal import Decimal
 from storage3.exceptions import StorageApiError
 import httpx
@@ -148,6 +149,14 @@ class CreateProductView(APIView):
         # ensure vendor and images are set explicitly
         clean_data['vendor_id'] = user.id
         clean_data['image_url'] = images_urls
+
+        # specs arrives as a JSON string from multipart forms; parse to a dict.
+        if 'specs' in clean_data and isinstance(clean_data['specs'], str):
+            try:
+                parsed = json.loads(clean_data['specs'])
+                clean_data['specs'] = parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                clean_data['specs'] = {}
 
         # convert numeric types to expected types
         if 'price' in clean_data:
