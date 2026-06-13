@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
-import { Home, Store, MessageSquare, PlusSquare, ShoppingCart, Wallet, User, LogIn, UserPlus } from 'lucide-react';
+import { Home, Store, MessageSquare, PlusSquare, ShoppingCart, Wallet, User, LogIn, UserPlus, Search } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
 /**
@@ -59,6 +59,7 @@ export default function LeftNav() {
 
     const navItems = [
         { href: '/', label: 'Feed', icon: Home, show: true, badge: 0 },
+        { href: '/search', label: 'Search', icon: Search, show: true, badge: 0 },
         { href: '/marketplace', label: 'Marketplace', icon: Store, show: true, badge: 0 },
         { href: '/chat', label: 'Messages', icon: MessageSquare, show: true, badge: 0 },
         { href: '/kauch/create', label: 'Create', icon: PlusSquare, show: isVendor, badge: 0 },

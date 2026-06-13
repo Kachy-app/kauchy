@@ -75,7 +75,31 @@ POST /kauch/posts/{post_id}/share/   → increments; returns { "shares_count": 1
 
 ---
 
-## 4. (Optional) Deep comment nesting
+## 4. Kauch search (search page — Kauch tab)
+
+**Why:** The search page has a **Kauch** tab, but there is no endpoint to search
+Kauches by name. Products and Vendors are already covered by
+`GET /usersearch/suggestions/?q=` (returns `suggested_products` + `suggested_vendors`);
+Kauch has no equivalent.
+
+**Need:** search Kauches by name/description.
+
+```
+GET /kauch/search/?q=sneakers
+Auth: optional
+Response (200): [ Kauch objects ]   // same shape as GET /kauch/{id}/
+```
+
+**Notes:**
+- Filter `KauchModel` on `name__icontains` / `description__icontains`, order by
+  `followers_count`, cap ~20, serialize with the existing `KauchSerializer`.
+- Until this exists the search page's **Kauch tab** calls this path and shows an empty
+  state on failure; the Products and Vendors tabs already work via the suggestions
+  endpoint.
+
+---
+
+## 5. (Optional) Deep comment nesting
 
 **Why:** Comment replies are intentionally **two levels** (a top-level comment and a
 flat list of replies, TikTok-style). Replying to a reply stays in the same thread and
