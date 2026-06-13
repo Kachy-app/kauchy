@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Play, Heart, MessageCircle, Share2, UserCircle, ShoppingBag } from 'lucide-react';
+import { Play, Heart, MessageCircle, Share2, UserCircle, ShoppingBag, Bookmark } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useAuthGate } from '@/context/AuthGateContext';
@@ -9,7 +9,7 @@ import FeedSidebar from '@/components/FeedSidebar';
 
 // Swiper integration
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Mousewheel, Keyboard, Virtual } from 'swiper/modules';
+import { Mousewheel, Keyboard, Virtual, Pagination } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
 
 // Import Swiper styles
@@ -35,6 +35,35 @@ function FeedContent() {
 
     const swiperRef = useRef<SwiperType | null>(null);
     const viewedItemsRef = useRef<Set<string>>(new Set());
+
+    // Bookmarks live client-side only (no backend), persisted to localStorage.
+    const [bookmarks, setBookmarks] = useState<number[]>([]);
+    // Which post id currently shows the double-tap heart burst.
+    const [burstId, setBurstId] = useState<number | null>(null);
+
+    // Gesture bookkeeping shared across slides.
+    const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const longPressFired = useRef(false);
+    const gestureActive = useRef(false);
+    const pressStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+    const lastTap = useRef<{ t: number; id: number | null }>({ t: 0, id: null });
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('kauch_bookmarks');
+            if (stored) setBookmarks(JSON.parse(stored));
+        } catch { /* ignore */ }
+    }, []);
+
+    const toggleBookmark = useCallback((item: any) => {
+        setBookmarks(prev => {
+            const exists = prev.includes(item.id);
+            const next = exists ? prev.filter(id => id !== item.id) : [...prev, item.id];
+            try { localStorage.setItem('kauch_bookmarks', JSON.stringify(next)); } catch { /* ignore */ }
+            showToast(exists ? 'Removed from bookmarks' : 'Saved to bookmarks', 'success');
+            return next;
+        });
+    }, [showToast]);
 
     useEffect(() => {
         loadFeedData();
@@ -63,6 +92,11 @@ function FeedContent() {
                     caption: p.description,
                     media_type: p.media_type,
                     media_url: p.media_url,
+                    // Full ordered media list. Backend guarantees a non-empty list
+                    // (it falls back to [media_url] for older single-media posts).
+                    media_urls: Array.isArray(p.media_urls) && p.media_urls.length > 0
+                        ? p.media_urls
+                        : (p.media_url ? [p.media_url] : []),
                     // ContentFeedView reads `video`; keep it populated only for video posts.
                     video: p.media_type === 'video' ? p.media_url : null,
                     created_at: p.created_at,
@@ -165,6 +199,78 @@ function FeedContent() {
         setActiveItemIndex(swiper.activeIndex);
     };
 
+    // Share a post: native OS share sheet on mobile, clipboard fallback elsewhere.
+    // The URL points at the server-rendered /kauch/post/[id] page whose OG tags
+    // give link previews the post thumbnail.
+    const handleShare = async (item: any) => {
+        const url = `${window.location.origin}/kauch/post/${item.id}`;
+        const title = `${item.vendor_username || 'Kauchy'} on Kauchy`;
+        const text = item.caption || 'Check out this post on Kauchy';
+
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share({ title, text, url });
+            } catch (err: any) {
+                // Swallow the cancel action; surface anything else.
+                if (err?.name !== 'AbortError') showToast('Could not share', 'error');
+            }
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(url);
+            showToast('Link copied to clipboard!', 'success');
+        } catch {
+            showToast('Could not copy link', 'error');
+        }
+    };
+
+    // Double-tap always *likes* (Instagram-style — never unlikes) and shows a burst.
+    const doubleTapLike = (item: any) => {
+        if (!item.is_liked_by_user) handleLike(item.id);
+        setBurstId(item.id);
+        setTimeout(() => setBurstId(curr => (curr === item.id ? null : curr)), 800);
+    };
+
+    // Unified pointer gestures on the media: long-press → bookmark, double-tap → like.
+    // Taps starting on a button/link (action rail, products, username) are ignored.
+    const onMediaPointerDown = (e: React.PointerEvent, item: any) => {
+        if ((e.target as HTMLElement).closest('button, a')) { gestureActive.current = false; return; }
+        gestureActive.current = true;
+        longPressFired.current = false;
+        pressStart.current = { x: e.clientX, y: e.clientY };
+        if (pressTimer.current) clearTimeout(pressTimer.current);
+        pressTimer.current = setTimeout(() => {
+            longPressFired.current = true;
+            toggleBookmark(item);
+        }, 500);
+    };
+
+    const cancelPress = () => {
+        if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
+    };
+
+    const onMediaPointerMove = (e: React.PointerEvent) => {
+        // A drag (swipe) cancels both long-press and the pending tap.
+        const dx = Math.abs(e.clientX - pressStart.current.x);
+        const dy = Math.abs(e.clientY - pressStart.current.y);
+        if (dx > 10 || dy > 10) cancelPress();
+    };
+
+    const onMediaPointerUp = (item: any) => {
+        if (!gestureActive.current) return;
+        gestureActive.current = false;
+        cancelPress();
+        if (longPressFired.current) { longPressFired.current = false; return; }
+        const now = Date.now();
+        if (now - lastTap.current.t < 300 && lastTap.current.id === item.id) {
+            lastTap.current = { t: 0, id: null };
+            doubleTapLike(item);
+        } else {
+            lastTap.current = { t: now, id: item.id };
+        }
+    };
+
     if (loading) {
         return (
             <div className="w-full h-full min-h-[calc(100dvh-135px)] bg-black flex items-center justify-center text-white flex-col gap-4">
@@ -193,6 +299,13 @@ function FeedContent() {
                 .swiper-slide { display: flex; justify-content: center; align-items: center; }
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                @keyframes likeBurst {
+                    0%   { transform: scale(0);   opacity: 0; }
+                    25%  { transform: scale(1.2); opacity: 1; }
+                    60%  { transform: scale(1);   opacity: 1; }
+                    100% { transform: scale(1.3); opacity: 0; }
+                }
+                .like-burst { animation: likeBurst 0.8s ease-in-out forwards; }
             `}} />
 
             {/* Swiper Vertical Feed Container */}
@@ -217,15 +330,35 @@ function FeedContent() {
 
                     return (
                         <SwiperSlide key={`kauch-${feedObj.item.id}-${index}`} virtualIndex={index}>
-                            <div className="w-full h-full relative flex items-center justify-center bg-zinc-950">
+                            <div
+                                className="relative flex items-center justify-center bg-zinc-950 overflow-hidden
+                                           w-full h-full
+                                           md:w-auto md:h-[94%] md:aspect-[9/16] md:rounded-2xl md:shadow-2xl"
+                                onPointerDown={(e) => onMediaPointerDown(e, feedObj.item)}
+                                onPointerMove={onMediaPointerMove}
+                                onPointerUp={() => onMediaPointerUp(feedObj.item)}
+                                onPointerLeave={cancelPress}
+                            >
                                 <ContentFeedView content={feedObj.item} isActive={index === activeItemIndex} />
+
+                                {/* Double-tap heart burst */}
+                                {burstId === feedObj.item.id && (
+                                    <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                                        <Heart size={120} className="text-white like-burst drop-shadow-2xl" fill="currentColor" />
+                                    </div>
+                                )}
 
                                 {/* Gradient overlay for bottom text visibility */}
                                 <div className="absolute bottom-0 left-0 w-full h-2/5 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none z-10" />
 
                                 {/* Brief Info Overlay at bottom left */}
                                 <div className={`absolute ${bottomOffset} left-4 right-16 z-20 text-white drop-shadow-md pointer-events-none flex flex-col justify-end pr-2`}>
-                                    <h2 className="text-xl sm:text-2xl font-bold mb-1 line-clamp-1 drop-shadow-lg">
+                                    <h2 className="text-xl sm:text-2xl font-bold mb-1 line-clamp-1 drop-shadow-lg w-fit pointer-events-auto cursor-pointer hover:underline"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (feedObj.item.kauch_id) router.push(`/kauch/${feedObj.item.kauch_id}`);
+                                        }}
+                                    >
                                         {feedObj.item.vendor_username || 'Vendor'}
                                     </h2>
                                     <p className="text-[15px] sm:text-base text-gray-200 line-clamp-2 drop-shadow-md leading-snug">
@@ -269,11 +402,19 @@ function FeedContent() {
                                     </button>
 
                                     {/* Share Button */}
-                                    <button className="flex flex-col items-center gap-1 text-white drop-shadow-lg group" onClick={(e) => { e.stopPropagation(); showToast('Link copied to clipboard!', 'success'); }}>
+                                    <button className="flex flex-col items-center gap-1 text-white drop-shadow-lg group" onClick={(e) => { e.stopPropagation(); handleShare(feedObj.item); }}>
                                         <div className="p-2 rounded-full transition-all group-hover:bg-white/10">
                                             <Share2 size={30} />
                                         </div>
                                         <span className="text-xs font-semibold">{feedObj.item.shares_count || 0}</span>
+                                    </button>
+
+                                    {/* Bookmark Button (also triggered by long-press on the media) */}
+                                    <button className="flex flex-col items-center gap-1 text-white drop-shadow-lg group" onClick={(e) => { e.stopPropagation(); toggleBookmark(feedObj.item); }}>
+                                        <div className={`p-2 rounded-full transition-all group-hover:bg-white/10 ${bookmarks.includes(feedObj.item.id) ? 'text-amber-400' : 'text-white'}`}>
+                                            <Bookmark size={30} fill={bookmarks.includes(feedObj.item.id) ? 'currentColor' : 'none'} />
+                                        </div>
+                                        <span className="text-xs font-semibold">Save</span>
                                     </button>
                                 </div>
 
@@ -381,15 +522,29 @@ function ContentFeedView({ content, isActive }: { content: any, isActive: boolea
     };
 
     if (!isVideo) {
-        return (
-            <div className="w-full h-full relative">
-                {mediaSrc ? (
-                    <img src={mediaSrc} alt={content.caption || 'Post'} className="w-full h-full object-cover" />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-gray-500 text-sm">No media</div>
-                )}
-            </div>
-        );
+        // Image post: may hold one or many images. Fall back to the single
+        // media_url for older posts that predate media_urls.
+        const images: string[] = (Array.isArray(content.media_urls) && content.media_urls.length > 0)
+            ? content.media_urls
+            : (mediaSrc ? [mediaSrc] : []);
+
+        if (images.length === 0) {
+            return (
+                <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-gray-500 text-sm">No media</div>
+            );
+        }
+
+        // Single image: no carousel needed.
+        if (images.length === 1) {
+            return (
+                <div className="w-full h-full relative">
+                    <img src={images[0]} alt={content.caption || 'Post'} className="w-full h-full object-cover" />
+                </div>
+            );
+        }
+
+        // Multiple images: a horizontal swiper nested inside the vertical feed.
+        return <ImageCarousel images={images} caption={content.caption} />;
     }
 
     return (
@@ -411,6 +566,49 @@ function ContentFeedView({ content, isActive }: { content: any, isActive: boolea
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+// Horizontal image carousel for multi-image posts, nested inside the vertical feed.
+// The outer feed is a *vertical* Swiper; this is a *horizontal* one. We stop touch
+// events from bubbling so a sideways swipe pages images instead of scrolling the feed.
+function ImageCarousel({ images, caption }: { images: string[]; caption?: string }) {
+    const [index, setIndex] = useState(0);
+
+    return (
+        <div
+            className="w-full h-full relative"
+            // Keep horizontal drags inside this carousel; don't let the parent
+            // vertical feed treat them as a vertical scroll.
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+        >
+            <Swiper
+                modules={[Pagination]}
+                direction="horizontal"
+                slidesPerView={1}
+                className="w-full h-full"
+                nested
+                onSlideChange={(s) => setIndex(s.activeIndex)}
+            >
+                {images.map((src, i) => (
+                    <SwiperSlide key={`${src}-${i}`}>
+                        <img src={src} alt={caption || `Image ${i + 1}`} className="w-full h-full object-cover" />
+                    </SwiperSlide>
+                ))}
+            </Swiper>
+
+            {/* Dot indicators: which image of how many. pointer-events-none so taps
+                fall through to the swiper underneath. */}
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex gap-1.5 pointer-events-none">
+                {images.map((_, i) => (
+                    <span
+                        key={i}
+                        className={`h-1.5 rounded-full transition-all ${i === index ? 'w-5 bg-white' : 'w-1.5 bg-white/50'}`}
+                    />
+                ))}
+            </div>
         </div>
     );
 }

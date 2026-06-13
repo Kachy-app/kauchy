@@ -36,9 +36,13 @@ export default function CreateKauchContent() {
   const [selectedKauchId, setSelectedKauchId] = useState<number | ''>('');
   const [description, setDescription] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  // A post is either ONE video or MANY images. We hold every chosen file here
+  // and derive the mode from the first file's type.
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [postSubmitting, setPostSubmitting] = useState(false);
   const mediaInputRef = useRef<HTMLInputElement>(null);
+
+  const isVideoPost = mediaFiles.length > 0 && mediaFiles[0].type.startsWith('video');
 
   // New Kauch State
   const [showCreateKauch, setShowCreateKauch] = useState(false);
@@ -84,20 +88,54 @@ export default function CreateKauchContent() {
     fetchProducts();
   }, [user]);
 
+  // Enforce "one video OR multiple images" the moment files are chosen.
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []);
+    // Reset the input so picking the same file again still fires onChange.
+    e.target.value = '';
+    if (picked.length === 0) return;
+
+    const hasVideo = picked.some(f => f.type.startsWith('video'));
+    const hasImage = picked.some(f => f.type.startsWith('image'));
+
+    if (hasVideo && (hasImage || picked.length > 1)) {
+      showToast('Pick either a single video or multiple images — not both.', 'error');
+      return;
+    }
+
+    if (hasVideo) {
+      // A video replaces whatever was there; a post can only hold one video.
+      setMediaFiles([picked[0]]);
+      return;
+    }
+
+    // Images: append to any existing images, but never mix with a video.
+    setMediaFiles(prev => {
+      if (prev.length > 0 && prev[0].type.startsWith('video')) return picked;
+      return [...prev, ...picked];
+    });
+  };
+
+  const removeMediaAt = (index: number) => {
+    setMediaFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedKauchId || !description) {
       showToast('Please fill all required fields.', 'error');
       return;
     }
-    if (!mediaFile) {
+    if (mediaFiles.length === 0) {
       showToast('Please upload an image or video.', 'error');
       return;
     }
 
     const formData = new FormData();
     formData.append('description', description);
-    formData.append('media', mediaFile);
+    // Append every file under the same "media" key. On the backend,
+    // request.FILES.getlist("media") reads them all back as a list.
+    mediaFiles.forEach(file => formData.append('media', file));
     formData.append('tagged_product_ids', JSON.stringify(selectedProducts));
 
     setPostSubmitting(true);
@@ -241,7 +279,16 @@ export default function CreateKauchContent() {
 
               {/* Media Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Media (Image or Video) *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
+                  <span>Media — one video or multiple images *</span>
+                  {mediaFiles.length > 0 && (
+                    <span className="text-xs font-normal text-gray-500">
+                      {isVideoPost ? '1 video' : `${mediaFiles.length} image${mediaFiles.length > 1 ? 's' : ''}`}
+                    </span>
+                  )}
+                </label>
+
+                {/* Dropzone */}
                 <div
                   onClick={() => mediaInputRef.current?.click()}
                   className="w-full border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded-xl p-8 flex flex-col items-center justify-center bg-gray-50 dark:bg-zinc-950 hover:bg-gray-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer group"
@@ -251,22 +298,54 @@ export default function CreateKauchContent() {
                     <span className="text-gray-300">|</span>
                     <Video size={32} />
                   </div>
-                  {mediaFile ? (
-                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{mediaFile.name}</p>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Click to upload or drag and drop</p>
-                      <p className="text-xs text-gray-500 mt-1">MP4, JPG, PNG (Max 50MB)</p>
-                    </>
-                  )}
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    {mediaFiles.length === 0
+                      ? 'Click to upload'
+                      : isVideoPost ? 'Replace video' : 'Add more images'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">MP4, JPG, PNG (Max 50MB each)</p>
                   <input
                     ref={mediaInputRef}
                     type="file"
                     className="hidden"
                     accept="video/*,image/*"
-                    onChange={(e) => setMediaFile(e.target.files?.[0] ?? null)}
+                    multiple
+                    onChange={handleMediaSelect}
                   />
                 </div>
+
+                {/* Previews of chosen files, each removable */}
+                {mediaFiles.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {mediaFiles.map((file, index) => {
+                      const url = URL.createObjectURL(file);
+                      const isVid = file.type.startsWith('video');
+                      return (
+                        <div key={`${file.name}-${index}`} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-zinc-800 group">
+                          {isVid ? (
+                            <video src={url} className="w-full h-full object-cover" muted />
+                          ) : (
+                            <img src={url} alt={file.name} className="w-full h-full object-cover" />
+                          )}
+                          {/* Order badge (images only — videos are always solo) */}
+                          {!isVid && (
+                            <span className="absolute top-1 left-1 w-5 h-5 flex items-center justify-center bg-black/60 text-white text-[10px] font-bold rounded-full">
+                              {index + 1}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeMediaAt(index)}
+                            className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors"
+                            title="Remove"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Tag Products */}

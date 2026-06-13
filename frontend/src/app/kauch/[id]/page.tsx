@@ -5,6 +5,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useAuthGate } from '@/context/AuthGateContext';
 import { Heart, MessageCircle, Share2, MoreHorizontal, ShoppingBag, ArrowLeft, Users, Send } from 'lucide-react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
 
 interface Comment {
   id: number;
@@ -25,6 +29,7 @@ interface Post {
   description: string;
   media_type: 'image' | 'video';
   media_url: string;
+  media_urls?: string[];
   tagged_products: TaggedProduct[];
   likes_count: number;
   comments_count: number;
@@ -337,16 +342,36 @@ export default function KauchProfile() {
                 <p className="text-gray-800 dark:text-gray-100 text-sm leading-relaxed mb-4">{post.description}</p>
               </div>
 
-              {/* Media Container */}
-              {post.media_url && (
-                <div className="w-full aspect-square sm:aspect-[4/5] bg-gray-100 dark:bg-zinc-800 relative overflow-hidden">
-                  {post.media_type === 'image' ? (
-                    <img src={post.media_url} alt="Post media" className="w-full h-full object-cover" />
-                  ) : (
-                    <video src={post.media_url} className="w-full h-full object-cover" controls />
-                  )}
-                </div>
-              )}
+              {/* Media Container — one video, one image, or a swipeable image carousel */}
+              {(() => {
+                const images = (post.media_urls && post.media_urls.length > 0)
+                  ? post.media_urls
+                  : (post.media_url ? [post.media_url] : []);
+                if (images.length === 0) return null;
+
+                return (
+                  <div className="w-full aspect-square sm:aspect-[4/5] bg-gray-100 dark:bg-zinc-800 relative overflow-hidden">
+                    {post.media_type === 'video' ? (
+                      <video src={images[0]} className="w-full h-full object-cover" controls />
+                    ) : images.length === 1 ? (
+                      <img src={images[0]} alt="Post media" className="w-full h-full object-cover" />
+                    ) : (
+                      <Swiper
+                        modules={[Pagination]}
+                        slidesPerView={1}
+                        pagination={{ clickable: true }}
+                        className="w-full h-full kauch-post-carousel"
+                      >
+                        {images.map((src, i) => (
+                          <SwiperSlide key={`${src}-${i}`}>
+                            <img src={src} alt={`Post media ${i + 1}`} className="w-full h-full object-cover" />
+                          </SwiperSlide>
+                        ))}
+                      </Swiper>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Actions Bar */}
               <div className="px-4 py-4 flex items-center gap-6 border-b border-gray-50 dark:border-zinc-800">

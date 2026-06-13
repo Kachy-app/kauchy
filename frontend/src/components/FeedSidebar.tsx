@@ -361,9 +361,25 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
 
     const isOwnProduct = type === 'product' && user && item.vendor_id && String(user.id) === String(item.vendor_id);
 
+    // The homepage feed renders comments as a bottom sheet that slides up from
+    // under on mobile, but a right-side drawer on desktop (md+). Everywhere else
+    // it's always the right-side drawer.
+    const panelClass = commentsOnly
+        ? `fixed z-[120] flex flex-col bg-white dark:bg-zinc-900 transform transition-transform duration-300 ease-in-out
+           inset-x-0 bottom-0 mx-auto max-w-2xl h-[72vh] rounded-t-2xl shadow-[0_-10px_30px_rgba(0,0,0,0.25)]
+           md:inset-y-0 md:right-0 md:!left-auto md:mx-0 md:max-w-none md:w-[420px] md:h-full md:rounded-none md:shadow-[-10px_0_30px_rgba(0,0,0,0.15)]
+           ${isOpen ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}`
+        : `fixed inset-y-0 right-0 z-[120] w-[92vw] sm:w-[420px] bg-white dark:bg-zinc-900 shadow-[-10px_0_30px_rgba(0,0,0,0.15)] transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`;
+
     return (
         <div className="dark contents">
-        <div className={`fixed inset-y-0 right-0 z-[120] w-[92vw] sm:w-[420px] bg-white dark:bg-zinc-900 shadow-[-10px_0_30px_rgba(0,0,0,0.15)] transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
+        <div className={panelClass}>
+            {/* Grab handle (mobile bottom-sheet only; hidden on desktop drawer) */}
+            {commentsOnly && (
+                <div className="flex md:hidden justify-center pt-2.5 pb-1 shrink-0">
+                    <span className="w-10 h-1.5 rounded-full bg-gray-300 dark:bg-zinc-700" />
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between p-4 sm:p-4 border-b border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-10">
                 <h2 className="text-xl sm:text-lg font-bold text-gray-900 dark:text-white capitalize">{commentsOnly ? 'Comments' : type === 'product' ? 'Product Details' : type === 'kauch' ? 'Post Details' : 'Content Details'}</h2>

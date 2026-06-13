@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
-import { Home, Store, MessageSquare, PlusSquare, ShoppingCart, Wallet, User } from 'lucide-react';
+import { Home, Store, MessageSquare, PlusSquare, ShoppingCart, Wallet, User, LogIn, UserPlus } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
 /**
@@ -142,29 +142,58 @@ export default function LeftNav() {
                 <NotificationBell />
             </div>
 
-            {/* Wallet */}
-            <Link href="/wallet" title="Wallet" className={`${itemBase} mx-3 text-amber-400 hover:bg-white/5`}>
-                <Wallet size={24} className="shrink-0" />
-                <span className="whitespace-nowrap text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    ₦{walletBalance}
-                </span>
-            </Link>
+            {/* Wallet — only meaningful when signed in */}
+            {user && (
+                <Link href="/wallet" title="Wallet" className={`${itemBase} mx-3 text-amber-400 hover:bg-white/5`}>
+                    <Wallet size={24} className="shrink-0" />
+                    <span className="whitespace-nowrap text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        ₦{walletBalance}
+                    </span>
+                </Link>
+            )}
 
-            {/* Profile / account */}
-            <Link
-                href={user ? '/account' : '/login'}
-                title="Profile"
-                className={`${itemBase} mx-3 mt-1 ${pathname === '/account' ? 'bg-white/10' : 'hover:bg-white/5'}`}
-            >
-                <span className="w-8 h-8 rounded-full overflow-hidden bg-zinc-700 shrink-0 flex items-center justify-center">
-                    {profileAvatar
-                        ? <img src={profileAvatar} alt="Profile" className="w-full h-full object-cover" />
-                        : <User size={18} className="text-gray-300" />}
-                </span>
-                <span className="whitespace-nowrap text-sm font-medium text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    Profile
-                </span>
-            </Link>
+            {/* Profile / account when signed in, Login + Sign Up when signed out */}
+            {user ? (
+                <Link
+                    href="/account"
+                    title="Profile"
+                    className={`${itemBase} mx-3 mt-1 ${pathname === '/account' ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                >
+                    <span className="w-8 h-8 rounded-full overflow-hidden bg-zinc-700 shrink-0 flex items-center justify-center">
+                        {profileAvatar
+                            ? <img src={profileAvatar} alt="Profile" className="w-full h-full object-cover" />
+                            : <User size={18} className="text-gray-300" />}
+                    </span>
+                    <span className="whitespace-nowrap text-sm font-medium text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        Profile
+                    </span>
+                </Link>
+            ) : (
+                <div className="flex flex-col gap-2 px-3 mt-1">
+                    {/* Login: icon-only when collapsed, becomes a full outlined button on hover */}
+                    <Link
+                        href="/login"
+                        title="Login"
+                        className={`${itemBase} text-gray-200 hover:bg-white/5 group-hover:border group-hover:border-gray-700 group-hover:justify-center`}
+                    >
+                        <LogIn size={24} className="shrink-0 group-hover:hidden" />
+                        <span className="whitespace-nowrap text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            Login
+                        </span>
+                    </Link>
+                    {/* Sign Up: the primary call-to-action, filled blue */}
+                    <Link
+                        href="/signup"
+                        title="Sign Up"
+                        className={`${itemBase} bg-blue-600 text-white hover:bg-blue-700 group-hover:justify-center`}
+                    >
+                        <UserPlus size={24} className="shrink-0 group-hover:hidden" />
+                        <span className="whitespace-nowrap text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            Sign Up
+                        </span>
+                    </Link>
+                </div>
+            )}
         </aside>
     );
 }
