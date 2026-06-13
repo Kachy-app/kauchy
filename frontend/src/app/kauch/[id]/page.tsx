@@ -83,6 +83,14 @@ export default function KauchProfile() {
   const [commentSubmitting, setCommentSubmitting] = useState<number | null>(null);
   // Reply target per post: { [postId]: { id, username } } (id = top-level comment).
   const [replyTo, setReplyTo] = useState<Record<number, { id: number; username: string } | null>>({});
+  // Top-level comment ids whose reply threads are expanded.
+  const [expandedThreads, setExpandedThreads] = useState<Set<number>>(new Set());
+  const toggleThread = (id: number) =>
+    setExpandedThreads(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   useEffect(() => {
     if (!kauchId) return;
@@ -237,6 +245,7 @@ export default function KauchProfile() {
         const created: Comment = await res.json();
         setCommentsMap(prev => ({ ...prev, [postId]: [created, ...(prev[postId] || [])] }));
         setCommentDrafts(prev => ({ ...prev, [postId]: '' }));
+        if (created.parent) setExpandedThreads(prev => new Set(prev).add(created.parent as number));
         setReplyTo(prev => ({ ...prev, [postId]: null }));
         setPosts(prev => prev.map(p =>
           p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p
@@ -456,9 +465,16 @@ export default function KauchProfile() {
                     <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
                       {commentsMap[post.id].filter(c => !c.parent).map(comment => {
                         const replies = commentsMap[post.id].filter(c => c.parent === comment.id);
+                        const expanded = expandedThreads.has(comment.id);
+                        const startReply = (c: Comment, isReply: boolean) => {
+                          const topId = isReply ? (c.parent as number) : c.id;
+                          setReplyTo(prev => ({ ...prev, [post.id]: { id: topId, username: c.user?.username || 'User' } }));
+                          if (isReply) setCommentDrafts(prev => ({ ...prev, [post.id]: `@${c.user?.username || 'User'} ` }));
+                          setExpandedThreads(prev => new Set(prev).add(topId));
+                        };
                         const renderRow = (c: Comment, isReply: boolean) => (
-                          <div key={c.id} className={`flex gap-3 ${isReply ? 'ml-8' : ''}`}>
-                            <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-700 shrink-0">
+                          <div key={c.id} className="flex gap-3">
+                            <div className={`${isReply ? 'w-7 h-7' : 'w-8 h-8'} rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-700 shrink-0`}>
                               <img src={c.user?.avatar_url || '/placeholder.svg'} alt="" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -470,7 +486,7 @@ export default function KauchProfile() {
                                 <span className="text-[11px] text-gray-400 dark:text-gray-500">{timeAgo(c.created_at)}</span>
                                 {user && (
                                   <button
-                                    onClick={() => setReplyTo(prev => ({ ...prev, [post.id]: { id: isReply ? (c.parent as number) : c.id, username: c.user?.username || 'User' } }))}
+                                    onClick={() => startReply(c, isReply)}
                                     className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 hover:text-blue-600"
                                   >
                                     Reply
@@ -483,7 +499,24 @@ export default function KauchProfile() {
                         return (
                           <div key={comment.id} className="space-y-2">
                             {renderRow(comment, false)}
-                            {replies.map(rep => renderRow(rep, true))}
+                            {replies.length > 0 && (
+                              <div className="ml-11">
+                                {!expanded ? (
+                                  <button onClick={() => toggleThread(comment.id)} className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                                    <span className="w-6 h-px bg-gray-300 dark:bg-zinc-600" />
+                                    View {replies.length} {replies.length > 1 ? 'replies' : 'reply'}
+                                  </button>
+                                ) : (
+                                  <div className="flex flex-col gap-2 border-l-2 border-gray-200 dark:border-zinc-700 pl-3">
+                                    {replies.map(rep => renderRow(rep, true))}
+                                    <button onClick={() => toggleThread(comment.id)} className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                                      <span className="w-6 h-px bg-gray-300 dark:bg-zinc-600" />
+                                      Hide replies
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

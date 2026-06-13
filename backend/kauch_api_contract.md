@@ -4,7 +4,8 @@ This document defines the REST API endpoints, request payloads, and expected JSO
 
 ## General Concepts
 - **Kauch**: Acts like a WhatsApp Channel. A vendor can own up to 2 Kauches. Only the owner can post.
-- **Kauch Post**: A post within a Kauch containing text, media (image/video), and a list of tagged products.
+- **Kauch Post**: A post within a Kauch containing text, media, and a list of tagged products.
+- **Media**: A post is **one video, one voice note (audio), or one-to-many images** — never a mix. `media_type` is one of `image` | `video` | `audio`. Media URLs are returned as an ordered list in `media_urls`; `media_url` is the legacy single field, kept equal to `media_urls[0]` for backward compatibility.
 
 ---
 
@@ -73,8 +74,9 @@ This document defines the REST API endpoints, request payloads, and expected JSO
       "avatar_url": "https://..."
     },
     "description": "Check out these new laptops!",
-    "media_type": "video", // or "image"
-    "media_url": "https://example.com/video.mp4",
+    "media_type": "video", // "image" | "video" | "audio"
+    "media_url": "https://example.com/video.mp4",          // legacy single URL = media_urls[0]
+    "media_urls": ["https://example.com/video.mp4"],       // ordered list; multiple entries for image carousels
     "tagged_products": [
       {
         "id": 55,
@@ -101,9 +103,23 @@ This document defines the REST API endpoints, request payloads, and expected JSO
 **Auth Required:** Yes (Must be owner of the Kauch)
 **Request Payload (multipart/form-data):**
 - `description` (string)
-- `media` (file)
+- `media` (file) — **may be repeated**. Send the field once per file. The server reads them with `request.FILES.getlist("media")`.
+  - Multiple **image** files → an image carousel (`media_type: "image"`).
+  - A single **video** file → `media_type: "video"`.
+  - A single **audio** file (voice note) → `media_type: "audio"`.
+  - Mixing a video/audio with other files, or sending more than one video/audio, returns **400**.
 - `tagged_product_ids` (string or array of integers, e.g., `[55, 56]`)
-**Response (201 Created):** Returns the created Post object (same as `2.1` item).
+**Response (201 Created):** Returns the created Post object (same as `2.1` item, with `media_urls`).
+**Error (400):**
+```json
+{ "error": "A post can contain either one video, one voice note, or multiple images." }
+```
+
+### 2.4 Get a Single Post (shareable / link previews)
+**Endpoint:** `GET /kauch/posts/{post_id}/`
+**Auth Required:** No (auth optional; affects `is_liked_by_user`)
+**Description:** Returns one post by id. Backs the server-rendered shareable post page and its Open Graph tags.
+**Response (200 OK):** A single Post object (same shape as a `2.1` item). **404** if not found.
 
 ---
 
@@ -121,29 +137,33 @@ This document defines the REST API endpoints, request payloads, and expected JSO
 }
 ```
 
-### 3.2 Comment on a Post
+### 3.2 Comment on a Post (and replies)
 **Endpoint:** `POST /kauch/posts/{post_id}/comments/`
 **Auth Required:** Yes
 **Request JSON:**
 ```json
 {
-  "text": "This is amazing!"
+  "text": "This is amazing!",
+  "parent": 500
 }
 ```
+- `text` (string, required)
+- `parent` (integer, optional) — the id of the comment being replied to. Omit/null for a top-level comment. A `parent` that does not belong to this post is ignored (treated as top-level).
 **Response (201 Created):**
 ```json
 {
-  "id": 500,
+  "id": 501,
   "user": {
     "id": 10,
     "username": "buyer123",
     "avatar_url": "..."
   },
   "text": "This is amazing!",
+  "parent": 500,
   "created_at": "..."
 }
 ```
 
 ### 3.3 List Comments for a Post
 **Endpoint:** `GET /kauch/posts/{post_id}/comments/`
-**Response (200 OK):** Array of comment objects (same as `3.2` response).
+**Response (200 OK):** A **flat** array of comment objects (same shape as `3.2`). Each has a `parent` field (`null` for top-level). The client groups replies under their parent. `comments_count` on the post includes replies.

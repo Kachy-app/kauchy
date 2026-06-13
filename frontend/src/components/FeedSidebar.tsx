@@ -70,6 +70,14 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
     const [userHasPurchased, setUserHasPurchased] = useState(false);
     // Which comment a kauch reply targets (always the top-level comment id).
     const [replyingTo, setReplyingTo] = useState<{ id: number; username: string } | null>(null);
+    // Top-level comment ids whose reply threads are expanded.
+    const [expandedThreads, setExpandedThreads] = useState<Set<number>>(new Set());
+    const toggleThread = (id: number) =>
+        setExpandedThreads(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
 
     const commentsEndRef = useRef<HTMLDivElement>(null);
 
@@ -329,6 +337,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
                 setReviews(prev => [...prev, { id: data.id, user_name: data.user?.username, avatar_url: data.user?.avatar_url, comment: data.text, parent: data.parent ?? null, created_at: data.created_at }]);
                 setTotalReviews(prev => prev + 1);
                 setReviewText('');
+                if (data.parent) setExpandedThreads(prev => new Set(prev).add(data.parent));
                 setReplyingTo(null);
                 setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
             } else {
@@ -421,10 +430,19 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
 
     const isOwnProduct = type === 'product' && user && item.vendor_id && String(user.id) === String(item.vendor_id);
 
-    // One kauch comment row (used for both top-level comments and indented replies).
+    // Start replying to a comment or a reply. Replies always attach to the
+    // top-level comment; replying to a reply prefills an @mention (TikTok-style).
+    const startKauchReply = (r: any, isReply: boolean) => {
+        const topId = isReply ? r.parent : r.id;
+        setReplyingTo({ id: topId, username: r.user_name });
+        if (isReply) setReviewText(`@${r.user_name} `);
+        setExpandedThreads(prev => new Set(prev).add(topId));
+    };
+
+    // One kauch comment row (used for both top-level comments and replies).
     const renderKauchComment = (r: any, isReply: boolean) => (
-        <div key={r.id} className={`flex gap-2.5 ${isReply ? 'ml-9 sm:ml-8' : ''}`}>
-            <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm sm:text-xs font-bold">
+        <div key={r.id} className="flex gap-2.5">
+            <div className={`${isReply ? 'w-7 h-7' : 'w-9 h-9 sm:w-8 sm:h-8'} rounded-full overflow-hidden shrink-0 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold`}>
                 {r.avatar_url
                     ? <img src={r.avatar_url} alt="" className="w-full h-full object-cover" />
                     : (r.user_name || 'U').charAt(0).toUpperCase()}
@@ -439,7 +457,7 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
                 </div>
                 {user && (
                     <button
-                        onClick={() => setReplyingTo({ id: isReply ? r.parent : r.id, username: r.user_name })}
+                        onClick={() => startKauchReply(r, isReply)}
                         className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-blue-600 mt-1 ml-2"
                     >
                         Reply
@@ -574,13 +592,35 @@ export default function FeedSidebar({ isOpen, onClose, type, item, addToCart, co
                                 <p className="text-base sm:text-sm text-gray-500 dark:text-gray-400 italic">No {type === 'product' ? 'reviews' : 'comments'} yet.</p>
                             </div>
                         ) : type === 'kauch' ? (
-                            // Threaded: top-level comments, each followed by its replies.
-                            reviews.filter(r => !r.parent).map((r) => (
-                                <div key={r.id} className="flex flex-col gap-2">
-                                    {renderKauchComment(r, false)}
-                                    {reviews.filter(rep => rep.parent === r.id).map(rep => renderKauchComment(rep, true))}
-                                </div>
-                            ))
+                            // Threaded (TikTok-style): top-level comments; replies are
+                            // collapsed behind a "View N replies" toggle with a thread line.
+                            reviews.filter(r => !r.parent).map((r) => {
+                                const replies = reviews.filter(rep => rep.parent === r.id);
+                                const expanded = expandedThreads.has(r.id);
+                                return (
+                                    <div key={r.id} className="flex flex-col gap-2">
+                                        {renderKauchComment(r, false)}
+                                        {replies.length > 0 && (
+                                            <div className="ml-11 sm:ml-10">
+                                                {!expanded ? (
+                                                    <button onClick={() => toggleThread(r.id)} className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                                                        <span className="w-6 h-px bg-gray-300 dark:bg-zinc-600" />
+                                                        View {replies.length} {replies.length > 1 ? 'replies' : 'reply'}
+                                                    </button>
+                                                ) : (
+                                                    <div className="flex flex-col gap-2 border-l-2 border-gray-200 dark:border-zinc-700 pl-3">
+                                                        {replies.map(rep => renderKauchComment(rep, true))}
+                                                        <button onClick={() => toggleThread(r.id)} className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                                                            <span className="w-6 h-px bg-gray-300 dark:bg-zinc-600" />
+                                                            Hide replies
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })
                         ) : (
                             reviews.map((r, idx) => (
                                 <div key={idx} className="flex gap-3 bg-gray-50 dark:bg-zinc-800 p-3 rounded-lg">
